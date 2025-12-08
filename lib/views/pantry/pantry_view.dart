@@ -4,6 +4,7 @@ import '../../controllers/pantry_item_controller.dart';
 import '../../models/pantry_item.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
 import 'add_pantry_view.dart';
+import 'list_pantry_view.dart';
 
 class PantryView extends StatefulWidget {
   const PantryView({super.key});
@@ -46,9 +47,21 @@ class _PantryViewState extends State<PantryView>
       final items = await _controller.getAllPantryItems();
       // Sort by expiry date ascending (soonest first, null dates at end)
       app_date_utils.DateUtils.sortByDate(items, (item) => item.expiryDate);
+
+      // Group by ingredient name and keep only the one with earliest expiry
+      final Map<int, PantryItem> groupedItems = {};
+      for (final item in items) {
+        final ingredientId = item.ingredientId;
+        if (!groupedItems.containsKey(ingredientId)) {
+          groupedItems[ingredientId] = item;
+        }
+        // Already sorted, so first item has earliest expiry
+      }
+      final uniqueItems = groupedItems.values.toList();
+
       setState(() {
-        _allItems = items;
-        _expiredItems = items.where((item) => item.isExpired).toList();
+        _allItems = uniqueItems;
+        _expiredItems = uniqueItems.where((item) => item.isExpired).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -308,7 +321,20 @@ class _PantryViewState extends State<PantryView>
     final expiryText = _getExpiryText(daysLeft);
 
     return InkWell(
-      onTap: () {},
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ListPantryView(
+              ingredientId: item.ingredientId,
+              ingredientName: item.ingredient?.name ?? 'Nguyên liệu',
+            ),
+          ),
+        );
+        if (result == true) {
+          _loadData();
+        }
+      },
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -328,28 +354,15 @@ class _PantryViewState extends State<PantryView>
                   : _buildPlaceholderImage(isDark),
             ),
             const SizedBox(width: 16),
-            // Name and quantity
+            // Name only (removed quantity)
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.ingredient?.name ?? 'Không xác định',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                      color: isDark ? Colors.grey[100] : Colors.grey[900],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} ${item.unit.displayName}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.grey[400] : Colors.grey[500],
-                    ),
-                  ),
-                ],
+              child: Text(
+                item.ingredient?.name ?? 'Không xác định',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                  color: isDark ? Colors.grey[100] : Colors.grey[900],
+                ),
               ),
             ),
             // Expiry
