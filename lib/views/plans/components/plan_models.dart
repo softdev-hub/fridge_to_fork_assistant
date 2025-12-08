@@ -1,0 +1,139 @@
+enum MealType { breakfast, lunch, dinner }
+
+extension MealTypeExt on MealType {
+  String get label {
+    switch (this) {
+      case MealType.breakfast:
+        return 'Sáng';
+      case MealType.lunch:
+        return 'Trưa';
+      case MealType.dinner:
+        return 'Tối';
+    }
+  }
+}
+
+class Meal {
+  final String name;
+  final String imageUrl;
+
+  const Meal({required this.name, required this.imageUrl});
+}
+
+class MealSlot {
+  final MealType type;
+  final Meal? meal;
+
+  const MealSlot({required this.type, this.meal});
+
+  bool get isEmpty => meal == null;
+}
+
+class DayPlan {
+  final String weekdayLabel; // Thứ 2, Thứ 3, ..., CN
+  final int dayOfMonth; // 13, 14, ...
+  final Map<MealType, MealSlot> slots;
+
+  const DayPlan({
+    required this.weekdayLabel,
+    required this.dayOfMonth,
+    required this.slots,
+  });
+}
+
+class WeekPlan {
+  final String label; // "Tuần 2 (13 - 19/11/2025)"
+  final List<DayPlan> days;
+  final int selectedDayIndex;
+
+  const WeekPlan({
+    required this.label,
+    required this.days,
+    this.selectedDayIndex = 0,
+  });
+}
+
+/// Dummy data cho tuần hiện tại (Tuần 2: 13 - 19/11/2025)
+final WeekPlan dummyWeekPlan = WeekPlan(
+  label: 'Tuần 2 (13 - 19/11/2025)',
+  selectedDayIndex: 2, // index 2 -> Thứ 4 (15) được highlight
+  days: [
+    DayPlan(
+      weekdayLabel: 'Thứ 2',
+      dayOfMonth: 13,
+      slots: {
+        MealType.breakfast: MealSlot(
+          type: MealType.breakfast,
+          meal: Meal(
+            name: 'Phở bò',
+            imageUrl:
+                'https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg',
+          ),
+        ),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'Thứ 3',
+      dayOfMonth: 14,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(
+          type: MealType.lunch,
+          meal: Meal(
+            name: 'Mì Ý sốt thịt',
+            imageUrl:
+                'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg',
+          ),
+        ),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'Thứ 4',
+      dayOfMonth: 15,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'Thứ 5',
+      dayOfMonth: 16,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'Thứ 6',
+      dayOfMonth: 17,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'Thứ 7',
+      dayOfMonth: 18,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'CN',
+      dayOfMonth: 19,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+  ],
+);
