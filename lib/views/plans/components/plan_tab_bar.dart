@@ -14,10 +14,10 @@ class PlanTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFFE5EDF7),
+        borderRadius: BorderRadius.circular(999),
       ),
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       child: Row(
         children: [
           _buildTab(title: 'Lịch tuần', index: 0),
@@ -35,15 +35,10 @@ class PlanTabBar extends StatelessWidget {
         onTap: () => onTabSelected(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF22C55E) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF22C55E)
-                  : const Color(0xFFE2E8F0),
-            ),
+            color: isSelected ? const Color(0xFF22C55E) : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Center(
             child: Text(
@@ -52,7 +47,7 @@ class PlanTabBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                color: isSelected ? Colors.white : const Color(0xFF64748B),
               ),
             ),
           ),

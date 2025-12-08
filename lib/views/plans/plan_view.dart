@@ -4,6 +4,8 @@ import 'components/plan_tab_bar.dart';
 import 'components/week_selector.dart';
 import 'components/meal_grid.dart';
 import 'components/plan_models.dart';
+import 'components/calendar_dialog.dart';
+import 'day_detail_view.dart';
 
 class PlanView extends StatefulWidget {
   const PlanView({super.key});
@@ -19,7 +21,57 @@ class _PlanViewState extends State<PlanView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kế hoạch và mua sắm'), elevation: 0),
+      appBar: AppBar(
+        title: const Text(
+          'Kế hoạch và mua sắm',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.ios_share, color: Colors.grey, size: 20),
+              onPressed: () {
+                // TODO: handle share
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.calendar_month_rounded,
+                color: Colors.grey,
+                size: 20,
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return CalendarDialog(
+                      initialDate: DateTime.now(),
+                      onDateSelected: (selectedDate) {
+                        // TODO: Handle date selection and update week plan
+                        Navigator.of(context).pop();
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -77,7 +129,19 @@ class _PlanViewState extends State<PlanView> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: MealGrid(weekPlan: _currentWeek),
+              child: MealGrid(
+                weekPlan: _currentWeek,
+                onDaySelected: (dayPlan, selectedDate) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => DayDetailView(
+                        dayPlan: dayPlan,
+                        selectedDate: selectedDate,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],

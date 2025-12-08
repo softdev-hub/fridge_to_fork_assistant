@@ -55,12 +55,12 @@ class WeekPlan {
 
 /// Dummy data cho tuần hiện tại (Tuần 2: 13 - 19/11/2025)
 final WeekPlan dummyWeekPlan = WeekPlan(
-  label: 'Tuần 2 (13 - 19/11/2025)',
+  label: 'Tuần 2 (15 - 21/12/2025)',
   selectedDayIndex: 2, // index 2 -> Thứ 4 (15) được highlight
   days: [
     DayPlan(
       weekdayLabel: 'Thứ 2',
-      dayOfMonth: 13,
+      dayOfMonth: 15,
       slots: {
         MealType.breakfast: MealSlot(
           type: MealType.breakfast,
@@ -76,7 +76,7 @@ final WeekPlan dummyWeekPlan = WeekPlan(
     ),
     DayPlan(
       weekdayLabel: 'Thứ 3',
-      dayOfMonth: 14,
+      dayOfMonth: 16,
       slots: {
         MealType.breakfast: MealSlot(type: MealType.breakfast),
         MealType.lunch: MealSlot(
@@ -92,33 +92,36 @@ final WeekPlan dummyWeekPlan = WeekPlan(
     ),
     DayPlan(
       weekdayLabel: 'Thứ 4',
-      dayOfMonth: 15,
+      dayOfMonth: 17,
       slots: {
-        MealType.breakfast: MealSlot(type: MealType.breakfast),
-        MealType.lunch: MealSlot(type: MealType.lunch),
-        MealType.dinner: MealSlot(type: MealType.dinner),
+        MealType.breakfast: MealSlot(
+          type: MealType.breakfast,
+          meal: Meal(
+            name: 'Phở Bò Hà Nội',
+            imageUrl:
+                'https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg',
+          ),
+        ),
+        MealType.lunch: MealSlot(
+          type: MealType.lunch,
+          meal: Meal(
+            name: 'Gà nướng mật ong',
+            imageUrl:
+                'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg',
+          ),
+        ),
+        MealType.dinner: MealSlot(
+          type: MealType.dinner,
+          meal: Meal(
+            name: 'Vịt tiềm',
+            imageUrl:
+                'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
+          ),
+        ),
       },
     ),
     DayPlan(
       weekdayLabel: 'Thứ 5',
-      dayOfMonth: 16,
-      slots: {
-        MealType.breakfast: MealSlot(type: MealType.breakfast),
-        MealType.lunch: MealSlot(type: MealType.lunch),
-        MealType.dinner: MealSlot(type: MealType.dinner),
-      },
-    ),
-    DayPlan(
-      weekdayLabel: 'Thứ 6',
-      dayOfMonth: 17,
-      slots: {
-        MealType.breakfast: MealSlot(type: MealType.breakfast),
-        MealType.lunch: MealSlot(type: MealType.lunch),
-        MealType.dinner: MealSlot(type: MealType.dinner),
-      },
-    ),
-    DayPlan(
-      weekdayLabel: 'Thứ 7',
       dayOfMonth: 18,
       slots: {
         MealType.breakfast: MealSlot(type: MealType.breakfast),
@@ -127,8 +130,26 @@ final WeekPlan dummyWeekPlan = WeekPlan(
       },
     ),
     DayPlan(
-      weekdayLabel: 'CN',
+      weekdayLabel: 'Thứ 6',
       dayOfMonth: 19,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'Thứ 7',
+      dayOfMonth: 20,
+      slots: {
+        MealType.breakfast: MealSlot(type: MealType.breakfast),
+        MealType.lunch: MealSlot(type: MealType.lunch),
+        MealType.dinner: MealSlot(type: MealType.dinner),
+      },
+    ),
+    DayPlan(
+      weekdayLabel: 'CN',
+      dayOfMonth: 21,
       slots: {
         MealType.breakfast: MealSlot(type: MealType.breakfast),
         MealType.lunch: MealSlot(type: MealType.lunch),

@@ -4,8 +4,10 @@ import 'plan_models.dart';
 
 class MealGrid extends StatelessWidget {
   final WeekPlan weekPlan;
+  final Function(DayPlan, DateTime)? onDaySelected;
 
-  const MealGrid({Key? key, required this.weekPlan}) : super(key: key);
+  const MealGrid({Key? key, required this.weekPlan, this.onDaySelected})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -34,26 +36,44 @@ class MealGrid extends StatelessWidget {
         final Color defaultText = const Color(0xFF0F172A);
 
         return Expanded(
-          child: Column(
-            children: [
-              Text(
-                day.weekdayLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? primary : const Color(0xFF94A3B8),
+          child: GestureDetector(
+            onTap: () {
+              if (onDaySelected != null) {
+                // Calculate the actual date based on the day of month
+                final now = DateTime.now();
+                final selectedDate = DateTime(
+                  now.year,
+                  now.month,
+                  day.dayOfMonth,
+                );
+                onDaySelected!(day, selectedDate);
+              }
+            },
+            child: Column(
+              children: [
+                Center(
+                  child: Text(
+                    day.weekdayLabel,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                day.dayOfMonth.toString(),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? primary : defaultText,
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(
+                    day.dayOfMonth.toString(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected ? primary : defaultText,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }),

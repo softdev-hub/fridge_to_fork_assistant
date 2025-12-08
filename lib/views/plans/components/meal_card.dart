@@ -31,14 +31,15 @@ class MealCard extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              mealType.label,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF94A3B8),
+            Center(
+              child: Text(
+                mealType.label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF94A3B8),
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -52,8 +53,17 @@ class MealCard extends StatelessWidget {
   }
 
   Widget _buildEmptyContent() {
-    return const Center(
-      child: Icon(Icons.add, size: 22, color: Color(0xFFCBD5E1)),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+          child: Icon(Icons.add, size: 20, color: Color(0xFF94A3B8)),
+        ),
+      ),
     );
   }
 
