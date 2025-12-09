@@ -25,7 +25,8 @@ class NotificationService {
 
   static const String _channelId = 'expiry_alerts';
   static const String _channelName = 'Thông báo hết hạn';
-  static const String _channelDescription = 'Nhắc nhở về nguyên liệu sắp hết hạn';
+  static const String _channelDescription =
+      'Nhắc nhở về nguyên liệu sắp hết hạn';
   static const String _taskName = 'checkExpiringItems';
 
   /// Initialize notification service
@@ -36,7 +37,9 @@ class NotificationService {
     tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     // Android initialization settings
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
 
     // iOS initialization settings
     const iosSettings = DarwinInitializationSettings(
@@ -78,7 +81,8 @@ class NotificationService {
 
     await _notifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
@@ -86,12 +90,9 @@ class NotificationService {
   static Future<void> _requestIOSPermissions() async {
     await _notifications
         .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
   /// Request Android 13+ notification permission
@@ -99,7 +100,8 @@ class NotificationService {
     if (Platform.isAndroid) {
       final android = _notifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       final granted = await android?.requestNotificationsPermission();
       return granted ?? false;
     }
@@ -131,10 +133,8 @@ class NotificationService {
       _taskName,
       frequency: const Duration(hours: 24),
       initialDelay: _calculateInitialDelay(),
-      constraints: Constraints(
-        networkType: NetworkType.connected,
-      ),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      constraints: Constraints(networkType: NetworkType.connected),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
     );
 
     debugPrint('Daily notification check scheduled');
@@ -190,13 +190,7 @@ class NotificationService {
       body = '$itemNames sẽ hết hạn trong 3 ngày tới!';
     }
 
-    await _notifications.show(
-      0,
-      title,
-      body,
-      details,
-      payload: 'expiry_alert',
-    );
+    await _notifications.show(0, title, body, details, payload: 'expiry_alert');
   }
 
   /// Check and notify about expiring items (called from background)
@@ -249,9 +243,6 @@ class NotificationService {
 
   /// Test notification (for development)
   static Future<void> showTestNotification() async {
-    await showExpiryNotification(
-      itemCount: 2,
-      itemNames: 'Sữa, Thịt bò',
-    );
+    await showExpiryNotification(itemCount: 2, itemNames: 'Sữa, Thịt bò');
   }
 }
