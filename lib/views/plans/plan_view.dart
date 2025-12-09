@@ -5,6 +5,7 @@ import 'components/week_selector.dart';
 import 'components/meal_grid.dart';
 import 'components/plan_models.dart';
 import 'components/calendar_dialog.dart';
+import 'components/shopping_list.dart';
 import 'day_detail_view.dart';
 
 class PlanView extends StatefulWidget {
@@ -151,12 +152,9 @@ class _PlanViewState extends State<PlanView> {
 
   Widget _buildShoppingListPlaceholder() {
     return const Expanded(
-      child: Center(
-        child: Text(
-          'Danh sách mua sắm\n(đang TODO)',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
-        ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: ShoppingListSection(),
       ),
     );
   }

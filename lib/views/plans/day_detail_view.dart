@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../common/bottom_navigation.dart';
-import 'components/plan_tab_bar.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
 import 'components/missing_ingredients.dart';
@@ -20,8 +19,6 @@ class DayDetailView extends StatefulWidget {
 }
 
 class _DayDetailViewState extends State<DayDetailView> {
-  int _selectedTabIndex = 0; // 0: Lịch tuần, 1: Danh sách mua sắm
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,7 +27,7 @@ class _DayDetailViewState extends State<DayDetailView> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        titleSpacing: 0, // hoặc 8 nếu muốn cách nhẹ
+        titleSpacing: 0,
         centerTitle: false,
         title: const Text(
           'Thực đơn ngày',
@@ -48,30 +45,7 @@ class _DayDetailViewState extends State<DayDetailView> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Tab bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: PlanTabBar(
-                selectedIndex: _selectedTabIndex,
-                onTabSelected: (index) {
-                  setState(() {
-                    _selectedTabIndex = index;
-                  });
-                },
-              ),
-            ),
-
-            // Content
-            if (_selectedTabIndex == 0)
-              _buildDayPlanContent()
-            else
-              _buildShoppingListContent(),
-          ],
-        ),
-      ),
+      body: SafeArea(child: _buildDayPlanContent()),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: 3,
         onTap: (index) {
@@ -99,7 +73,8 @@ class _DayDetailViewState extends State<DayDetailView> {
             const SizedBox(height: 12),
             _buildMealCard(MealType.dinner),
             const SizedBox(height: 24),
-
+            _buildMealCard(MealType.dinner),
+            const SizedBox(height: 24),
             // Missing ingredients section
             const MissingIngredientsSection(),
           ],
@@ -132,18 +107,6 @@ class _DayDetailViewState extends State<DayDetailView> {
       onTap: () {
         // TODO: Handle meal tap
       },
-    );
-  }
-
-  Widget _buildShoppingListContent() {
-    return const Expanded(
-      child: Center(
-        child: Text(
-          'Danh sách mua sắm\n(đang TODO)',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
-        ),
-      ),
     );
   }
 
