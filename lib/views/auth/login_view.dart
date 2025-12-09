@@ -13,13 +13,79 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final authService = AuthService();
 
+  // form key for validation
+  final _formKey = GlobalKey<FormState>();
+
   // text controllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _passwordVisible = false;
+  bool _isLoading = false;
 
-  void login() async {
-    final email = _emailController.text;
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Email validation
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Vui lòng nhập email';
+    }
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return 'Email không hợp lệ';
+    }
+    return null;
+  }
+
+  // Password validation
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Vui lòng nhập mật khẩu';
+    }
+    if (value.length < 6) {
+      return 'Mật khẩu phải có ít nhất 6 ký tự';
+    }
+    return null;
+  }
+
+  // Parse error message to user-friendly Vietnamese
+  String _getErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    if (errorStr.contains('invalid login credentials') ||
+        errorStr.contains('invalid_credentials')) {
+      return 'Email hoặc mật khẩu không đúng';
+    }
+    if (errorStr.contains('email not confirmed')) {
+      return 'Email chưa được xác nhận. Vui lòng kiểm tra hộp thư';
+    }
+    if (errorStr.contains('too many requests') ||
+        errorStr.contains('rate limit')) {
+      return 'Quá nhiều lần thử. Vui lòng đợi một lát';
+    }
+    if (errorStr.contains('network') ||
+        errorStr.contains('connection') ||
+        errorStr.contains('socket')) {
+      return 'Lỗi kết nối mạng. Vui lòng kiểm tra internet';
+    }
+    if (errorStr.contains('user not found')) {
+      return 'Tài khoản không tồn tại';
+    }
+    return 'Đăng nhập thất bại. Vui lòng thử lại';
+  }
+
+  Future<void> login() async {
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     try {
@@ -27,8 +93,19 @@ class _LoginViewState extends State<LoginView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $e')),
+          SnackBar(
+            content: Text(_getErrorMessage(e)),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -47,43 +124,46 @@ class _LoginViewState extends State<LoginView> {
               constraints: const BoxConstraints(maxWidth: 400),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 40),
-                    _buildLogo(),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Bếp trợ lý',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[900],
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 40),
+                      _buildLogo(),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Bếp trợ lý',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Chào mừng trở lại!',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 16,
-                        color: Colors.grey[600],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Chào mừng trở lại!',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 48),
-                    _buildEmailField(),
-                    const SizedBox(height: 24),
-                    _buildPasswordField(),
-                    const SizedBox(height: 16),
-                    _buildForgotPassword(),
-                    const SizedBox(height: 32),
-                    _buildLoginButton(primaryColor),
-                    const SizedBox(height: 32),
-                    _buildRegisterLink(primaryColor),
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 48),
+                      _buildEmailField(),
+                      const SizedBox(height: 24),
+                      _buildPasswordField(),
+                      const SizedBox(height: 16),
+                      _buildForgotPassword(),
+                      const SizedBox(height: 32),
+                      _buildLoginButton(primaryColor),
+                      const SizedBox(height: 32),
+                      _buildRegisterLink(primaryColor),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -126,9 +206,10 @@ class _LoginViewState extends State<LoginView> {
         Text(
           'Email',
           style: GoogleFonts.beVietnamPro(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[700]),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
         ),
         const SizedBox(height: 4),
         TextFormField(
@@ -138,6 +219,7 @@ class _LoginViewState extends State<LoginView> {
             hintText: 'nhapemail@domain.com',
             prefixIcon: Icons.email,
           ),
+          validator: _validateEmail,
         ),
       ],
     );
@@ -150,9 +232,10 @@ class _LoginViewState extends State<LoginView> {
         Text(
           'Mật khẩu',
           style: GoogleFonts.beVietnamPro(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[700]),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
         ),
         const SizedBox(height: 4),
         TextFormField(
@@ -173,15 +256,17 @@ class _LoginViewState extends State<LoginView> {
               },
             ),
           ),
+          validator: _validatePassword,
         ),
       ],
     );
   }
 
-  InputDecoration _inputDecoration(
-      {required String hintText,
-      required IconData prefixIcon,
-      Widget? suffixIcon}) {
+  InputDecoration _inputDecoration({
+    required String hintText,
+    required IconData prefixIcon,
+    Widget? suffixIcon,
+  }) {
     const primaryColor = Color(0xFF4CAF50);
     return InputDecoration(
       prefixIcon: Padding(
@@ -194,8 +279,7 @@ class _LoginViewState extends State<LoginView> {
       hintStyle: GoogleFonts.beVietnamPro(color: Colors.grey[400]),
       filled: true,
       fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: Colors.grey[200]!),
@@ -235,20 +319,27 @@ class _LoginViewState extends State<LoginView> {
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         padding: const EdgeInsets.symmetric(vertical: 20),
         elevation: 0,
       ),
-      onPressed: login,
-      child: Text(
-        'Đăng nhập',
-        style: GoogleFonts.beVietnamPro(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      onPressed: _isLoading ? null : login,
+      child: _isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              'Đăng nhập',
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
     );
   }
 
