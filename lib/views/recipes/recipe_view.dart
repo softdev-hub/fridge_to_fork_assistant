@@ -1,0 +1,44 @@
+// lib/recipes/recipe_view.dart
+
+import 'package:flutter/material.dart';
+import '../common/bottom_navigation.dart';
+import 'components/recipe_list_screen.dart';
+
+class RecipeView extends StatelessWidget {
+  const RecipeView({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        scrolledUnderElevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF64748B)),
+        title: const Text(
+          'Món có thể làm từ sữa',
+          style: TextStyle(
+            color: Color(0xFF000000),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              // TODO: open more options
+            },
+          ),
+        ],
+      ),
+      body: const SafeArea(top: false, child: RecipeListScreen()),
+      bottomNavigationBar: AppBottomNavigation(
+        currentIndex: 2, // 0: Trang chủ, 1: Kho, 2: Công thức, 3: Kế hoạch
+        onTap: (index) {
+          // TODO: navigate between bottom tabs
+        },
+      ),
+    );
+  }
+}
