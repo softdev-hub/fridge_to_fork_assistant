@@ -49,6 +49,33 @@ class _RegisterPageState extends State<RegisterPage> {
     return null;
   }
 
+  // Parse error message to user-friendly Vietnamese
+  String _getErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    if (errorStr.contains('user already registered') ||
+        errorStr.contains('already exists') ||
+        errorStr.contains('email already')) {
+      return 'Email này đã được đăng ký';
+    }
+    if (errorStr.contains('invalid email')) {
+      return 'Email không hợp lệ';
+    }
+    if (errorStr.contains('weak password') ||
+        errorStr.contains('password')) {
+      return 'Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn';
+    }
+    if (errorStr.contains('too many requests') ||
+        errorStr.contains('rate limit')) {
+      return 'Quá nhiều lần thử. Vui lòng đợi một lát';
+    }
+    if (errorStr.contains('network') ||
+        errorStr.contains('connection') ||
+        errorStr.contains('socket')) {
+      return 'Lỗi kết nối mạng. Vui lòng kiểm tra internet';
+    }
+    return 'Đăng ký thất bại. Vui lòng thử lại';
+  }
+
   Future<void> signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -60,7 +87,14 @@ class _RegisterPageState extends State<RegisterPage> {
       await authService.signUpWithEmailPassword(email, password);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đăng ký thành công. Vui lòng đăng nhập.')),
+        SnackBar(
+          content: const Text('Đăng ký thành công. Vui lòng đăng nhập.'),
+          backgroundColor: Colors.green[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
       // Navigate to login and remove all previous routes
       Navigator.of(context).pushAndRemoveUntil(
@@ -69,7 +103,14 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đăng ký thất bại: $e')),
+          SnackBar(
+            content: Text(_getErrorMessage(e)),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
       }
     } finally {
