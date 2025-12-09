@@ -5,6 +5,7 @@ import '../../models/enums.dart';
 import '../../models/pantry_item.dart';
 import '../../controllers/ingredient_controller.dart';
 import '../../controllers/pantry_item_controller.dart';
+import '../../utils/date_utils.dart' as app_date_utils;
 
 class AddPantryView extends StatefulWidget {
   const AddPantryView({super.key});
@@ -27,6 +28,10 @@ class _AddPantryViewState extends State<AddPantryView> {
   DateTime? _purchaseDate;
   DateTime? _expiryDate;
   bool _isLoading = false;
+
+  // Error states for inline validation
+  String? _purchaseDateError;
+  String? _expiryDateError;
 
   static const Color primaryColor = Color(0xFF4CAF50);
   static const Color backgroundColor = Color(0xFFF8F9FA);
@@ -66,11 +71,34 @@ class _AddPantryViewState extends State<AddPantryView> {
   }
 
   Future<void> _submitForm() async {
+    // Clear previous errors
+    setState(() {
+      _purchaseDateError = null;
+      _expiryDateError = null;
+    });
+
+    // Validate form fields
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedUnit == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Vui lòng chọn đơn vị')));
+
+    // Validate dates
+    final purchaseDateError = app_date_utils.DateUtils.validatePurchaseDate(
+      _purchaseDate,
+    );
+    final expiryDateError = app_date_utils.DateUtils.validateExpiryDate(
+      _expiryDate,
+    );
+    final dateRangeError = app_date_utils.DateUtils.validateDateRange(
+      _purchaseDate,
+      _expiryDate,
+    );
+
+    if (purchaseDateError != null ||
+        expiryDateError != null ||
+        dateRangeError != null) {
+      setState(() {
+        _purchaseDateError = purchaseDateError;
+        _expiryDateError = expiryDateError ?? dateRangeError;
+      });
       return;
     }
 
@@ -159,6 +187,7 @@ class _AddPantryViewState extends State<AddPantryView> {
                         _purchaseDate,
                         () => _selectDate(context, true),
                         isDark,
+                        errorText: _purchaseDateError,
                       ),
                       const SizedBox(height: 16),
                       _buildDateField(
@@ -166,6 +195,7 @@ class _AddPantryViewState extends State<AddPantryView> {
                         _expiryDate,
                         () => _selectDate(context, false),
                         isDark,
+                        errorText: _expiryDateError,
                       ),
                       const SizedBox(height: 16),
                       _buildNoteField(isDark),
@@ -346,6 +376,12 @@ class _AddPantryViewState extends State<AddPantryView> {
             return DropdownMenuItem(value: unit, child: Text(unit.displayName));
           }).toList(),
           onChanged: (value) => setState(() => _selectedUnit = value),
+          validator: (value) {
+            if (value == null) {
+              return 'Vui lòng chọn đơn vị';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -383,8 +419,10 @@ class _AddPantryViewState extends State<AddPantryView> {
     String label,
     DateTime? date,
     VoidCallback onTap,
-    bool isDark,
-  ) {
+    bool isDark, {
+    String? errorText,
+  }) {
+    final hasError = errorText != null && errorText.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -399,7 +437,9 @@ class _AddPantryViewState extends State<AddPantryView> {
               color: isDark ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+                color: hasError
+                    ? Colors.red
+                    : (isDark ? Colors.grey[700]! : Colors.grey[200]!),
               ),
             ),
             child: Row(
@@ -424,6 +464,14 @@ class _AddPantryViewState extends State<AddPantryView> {
             ),
           ),
         ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 12),
+            child: Text(
+              errorText,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
       ],
     );
   }
@@ -438,10 +486,7 @@ class _AddPantryViewState extends State<AddPantryView> {
           controller: _noteController,
           maxLines: 3,
           style: TextStyle(color: isDark ? Colors.grey[100] : Colors.grey[900]),
-          decoration: _inputDecoration(
-            'Nhập ghi chú nếu có',
-            isDark,
-          ),
+          decoration: _inputDecoration('Nhập ghi chú nếu có', isDark),
         ),
       ],
     );
@@ -602,7 +647,6 @@ class DashedBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // No drawing needed - using solid border with Container decoration
   }
 
   @override

@@ -100,6 +100,28 @@ class PantryItemController {
         .toList();
   }
 
+  /// Get items that will expire within specified days (includes already expired)
+  Future<List<PantryItem>> getExpiringItems({int days = 7}) async {
+    final profileId = _currentProfileId;
+    if (profileId == null) throw Exception('User not authenticated');
+
+    final today = DateTime.now();
+    final futureDate = today.add(Duration(days: days));
+    final futureDateStr = futureDate.toIso8601String().split('T')[0];
+
+    final response = await _supabase
+        .from(_tableName)
+        .select('*, ingredients(*)')
+        .eq('profile_id', profileId)
+        .isFilter('deleted_at', null)
+        .lte('expiry_date', futureDateStr)
+        .order('expiry_date');
+
+    return (response as List)
+        .map((json) => PantryItem.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Search pantry items by ingredient name
   Future<List<PantryItem>> searchPantryItems(String query) async {
     final profileId = _currentProfileId;
