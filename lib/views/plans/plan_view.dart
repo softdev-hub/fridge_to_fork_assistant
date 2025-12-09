@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../common/bottom_navigation.dart';
 import 'components/plan_tab_bar.dart';
 import 'components/week_selector.dart';
 import 'components/meal_grid.dart';
@@ -21,6 +20,7 @@ class _PlanViewState extends State<PlanView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text(
           'Kế hoạch và mua sắm',
@@ -95,13 +95,6 @@ class _PlanViewState extends State<PlanView> {
               _buildShoppingListPlaceholder(),
           ],
         ),
-      ),
-      // Tab "Kế hoạch" là index 3 (0-based)
-      bottomNavigationBar: AppBottomNavigation(
-        currentIndex: 3,
-        onTap: (index) {
-          // Handle bottom navigation tap
-        },
       ),
     );
   }

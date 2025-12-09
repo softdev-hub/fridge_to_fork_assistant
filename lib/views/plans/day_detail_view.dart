@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../common/bottom_navigation.dart';
+import '../common/bottomNavigation.dart';
 import 'components/plan_tab_bar.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
