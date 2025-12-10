@@ -3,123 +3,135 @@
 import 'package:flutter/material.dart';
 import 'recipe_card_item.dart';
 
-enum RecipeDifficulty { easy, medium }
+enum RecipeDifficulty { easy, medium, hard }
 
-enum RecipeMealTime { breakfast, dinner }
+enum RecipeMealTime { breakfast, lunch, dinner }
 
-enum RecipeStatusType {
-  success, // xanh lá
-  info, // xanh dương
-  warning, // cam
-}
-
-class RecipeStatusChipData {
-  final String label;
-  final RecipeStatusType type;
-
-  RecipeStatusChipData({required this.label, required this.type});
-}
+enum MatchType { full, partial }
 
 class Recipe {
   final String name;
   final String timeLabel;
   final RecipeDifficulty difficulty;
   final RecipeMealTime mealTime;
-  final List<RecipeStatusChipData> statuses;
+  final MatchType matchType;
+  final int availableIngredients;
+  final int totalIngredients;
+  final int? missingCount;
+  final int? expiringCount;
+  final bool isExpiring;
+  final bool isFaded;
 
   Recipe({
     required this.name,
     required this.timeLabel,
     required this.difficulty,
     required this.mealTime,
-    required this.statuses,
+    required this.matchType,
+    required this.availableIngredients,
+    required this.totalIngredients,
+    this.missingCount,
+    this.expiringCount,
+    this.isExpiring = false,
+    this.isFaded = false,
   });
 }
 
-// Dummy data mô phỏng theo UI
+// Dummy data mô phỏng theo HTML
 final List<Recipe> dummyRecipes = [
   Recipe(
-    name: 'Sữa chua dẻo',
+    name: 'Cà ri gà thơm lừng',
     timeLabel: '15 phút',
     difficulty: RecipeDifficulty.easy,
     mealTime: RecipeMealTime.dinner,
-    statuses: [
-      RecipeStatusChipData(
-        label: 'Đủ 6/6 nguyên liệu',
-        type: RecipeStatusType.success,
-      ),
-      RecipeStatusChipData(
-        label: 'Dùng 2 nguyên liệu sắp hết hạn',
-        type: RecipeStatusType.warning,
-      ),
-    ],
+    matchType: MatchType.full,
+    availableIngredients: 6,
+    totalIngredients: 6,
+    expiringCount: 2,
+    isExpiring: true,
   ),
   Recipe(
-    name: 'Panna Cotta',
+    name: 'Bánh mì chả cá Nha Trang',
     timeLabel: '20 phút',
     difficulty: RecipeDifficulty.medium,
     mealTime: RecipeMealTime.breakfast,
-    statuses: [
-      RecipeStatusChipData(
-        label: 'Có 5/6 nguyên liệu',
-        type: RecipeStatusType.info,
-      ),
-      RecipeStatusChipData(
-        label: 'Thiếu 1 nguyên liệu',
-        type: RecipeStatusType.warning,
-      ),
-    ],
+    matchType: MatchType.partial,
+    availableIngredients: 5,
+    totalIngredients: 6,
+    missingCount: 1,
   ),
   Recipe(
-    name: 'Sữa trứng bí đỏ',
-    timeLabel: '20 phút',
-    difficulty: RecipeDifficulty.medium,
-    mealTime: RecipeMealTime.breakfast,
-    statuses: [
-      RecipeStatusChipData(
-        label: 'Có 5/6 nguyên liệu',
-        type: RecipeStatusType.info,
-      ),
-      RecipeStatusChipData(
-        label: 'Thiếu 1 nguyên liệu',
-        type: RecipeStatusType.warning,
-      ),
-    ],
+    name: 'Chả cá Lã Vọng truyền thống',
+    timeLabel: '35 phút',
+    difficulty: RecipeDifficulty.hard,
+    mealTime: RecipeMealTime.lunch,
+    matchType: MatchType.partial,
+    availableIngredients: 7,
+    totalIngredients: 9,
+    missingCount: 2,
   ),
   Recipe(
-    name: 'Bánh mochi kem sốt',
-    timeLabel: '20 phút',
-    difficulty: RecipeDifficulty.medium,
-    mealTime: RecipeMealTime.breakfast,
-    statuses: [
-      RecipeStatusChipData(
-        label: 'Có 5/6 nguyên liệu',
-        type: RecipeStatusType.info,
-      ),
-      RecipeStatusChipData(
-        label: 'Thiếu 1 nguyên liệu',
-        type: RecipeStatusType.warning,
-      ),
-    ],
+    name: 'Chả cá Lã Vọng truyền thống',
+    timeLabel: '35 phút',
+    difficulty: RecipeDifficulty.hard,
+    mealTime: RecipeMealTime.lunch,
+    matchType: MatchType.partial,
+    availableIngredients: 7,
+    totalIngredients: 9,
+    missingCount: 2,
+    isFaded: true,
   ),
 ];
 
 class RecipeCardList extends StatelessWidget {
   final List<Recipe> recipes;
+  final bool isTablet;
+  final bool isDesktop;
 
-  const RecipeCardList({Key? key, required this.recipes}) : super(key: key);
+  const RecipeCardList({
+    Key? key,
+    required this.recipes,
+    this.isTablet = false,
+    this.isDesktop = false,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      itemCount: recipes.length,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 16),
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final recipe = recipes[index];
-        return RecipeCardItem(recipe: recipe);
-      },
-    );
+    if (isDesktop) {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.85,
+        ),
+        itemCount: recipes.length,
+        itemBuilder: (context, index) {
+          return RecipeCardItem(recipe: recipes[index]);
+        },
+      );
+    } else if (isTablet) {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.85,
+        ),
+        itemCount: recipes.length,
+        itemBuilder: (context, index) {
+          return RecipeCardItem(recipe: recipes[index]);
+        },
+      );
+    } else {
+      return ListView.separated(
+        itemCount: recipes.length,
+        physics: const BouncingScrollPhysics(),
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          return RecipeCardItem(recipe: recipes[index]);
+        },
+      );
+    }
   }
 }
