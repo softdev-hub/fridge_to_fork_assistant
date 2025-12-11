@@ -1,9 +1,14 @@
-// lib/recipes/components/recipe_filter_bar.dart
+// lib/recipes/components/recipe_matching_filter_bar.dart
 
 import 'package:flutter/material.dart';
 
-class RecipeFilterBar extends StatelessWidget {
-  const RecipeFilterBar({Key? key}) : super(key: key);
+class RecipeMatchingFilterBar extends StatelessWidget {
+  final List<String> selectedFilters;
+
+  const RecipeMatchingFilterBar({
+    Key? key,
+    this.selectedFilters = const [],
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -11,11 +16,23 @@ class RecipeFilterBar extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip(label: 'Thời gian', icon: Icons.schedule),
+          _buildFilterChip(
+            label: '≤ 20 phút',
+            icon: Icons.schedule,
+            isSelected: selectedFilters.contains('time'),
+          ),
           const SizedBox(width: 8),
-          _buildFilterChip(label: 'Bữa ăn', icon: Icons.restaurant),
+          _buildFilterChip(
+            label: 'Bữa tối',
+            icon: Icons.restaurant,
+            isSelected: selectedFilters.contains('meal'),
+          ),
           const SizedBox(width: 8),
-          _buildFilterChip(label: 'Ẩm thực', icon: Icons.public),
+          _buildFilterChip(
+            label: 'Ẩm thực Á',
+            icon: Icons.public,
+            isSelected: selectedFilters.contains('cuisine'),
+          ),
           const SizedBox(width: 8),
           _buildFilterButton(),
         ],
@@ -23,7 +40,11 @@ class RecipeFilterBar extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip({required String label, required IconData icon}) {
+  Widget _buildFilterChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+  }) {
     return GestureDetector(
       onTap: () {
         // TODO: handle filter change
@@ -32,20 +53,24 @@ class RecipeFilterBar extends StatelessWidget {
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFE5E7EB),
+          color: isSelected ? const Color(0xFF4CAF50) : const Color(0xFFE5E7EB),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : const Color(0xFF6B7280),
+            ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF6B7280),
+                color: isSelected ? Colors.white : const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -65,10 +90,10 @@ class RecipeFilterBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFE5E7EB),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF7DEA11)),
         ),
         child: const Icon(Icons.tune, size: 18, color: Color(0xFF6B7280)),
       ),
     );
   }
 }
+
