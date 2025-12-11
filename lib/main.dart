@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fridge_to_fork_assistant/routes/auth_gate.dart';
-import 'package:fridge_to_fork_assistant/views/recipes/recipe_view.dart';
 import 'package:fridge_to_fork_assistant/services/notification_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

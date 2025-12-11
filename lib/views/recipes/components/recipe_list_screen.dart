@@ -1,5 +1,3 @@
-// lib/recipes/components/recipe_list_screen.dart
-
 import 'package:flutter/material.dart';
 import 'recipe_filter_bar.dart';
 import 'recipe_card_list.dart';
