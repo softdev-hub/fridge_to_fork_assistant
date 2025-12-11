@@ -16,7 +16,6 @@ class MealCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.all(2),
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -53,15 +52,23 @@ class MealCard extends StatelessWidget {
   }
 
   Widget _buildEmptyContent() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Center(
-          child: Icon(Icons.add, size: 20, color: Color(0xFF94A3B8)),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: 56, // ô vuông
+        height: 56,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9), // nền xám nhạt
+            borderRadius: BorderRadius.circular(10), // bo tròn
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.add,
+              size: 20,
+              color: Color(0xFF94A3B8), // màu xám icon +
+            ),
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'components/week_selector.dart';
 import 'components/meal_grid.dart';
 import 'components/plan_models.dart';
 import 'components/calendar_dialog.dart';
+import 'components/draggable_bottom_sheet.dart';
 import 'day_detail_view.dart';
 
 class PlanView extends StatefulWidget {
@@ -16,6 +17,14 @@ class PlanView extends StatefulWidget {
 class _PlanViewState extends State<PlanView> {
   int _selectedTabIndex = 0; // 0: Lịch tuần, 1: Danh sách mua sắm
   final WeekPlan _currentWeek = dummyWeekPlan;
+  bool _showRecipeAddForm = false;
+  final ScrollController _recipeScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _recipeScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +37,7 @@ class _PlanViewState extends State<PlanView> {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0, //không tint thêm màu
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 4),
@@ -38,7 +48,9 @@ class _PlanViewState extends State<PlanView> {
             child: IconButton(
               icon: const Icon(Icons.ios_share, color: Colors.grey, size: 20),
               onPressed: () {
-                // TODO: handle share
+                setState(() {
+                  _showRecipeAddForm = !_showRecipeAddForm;
+                });
               },
             ),
           ),
@@ -83,16 +95,48 @@ class _PlanViewState extends State<PlanView> {
                 onTabSelected: (index) {
                   setState(() {
                     _selectedTabIndex = index;
+                    _showRecipeAddForm = false;
                   });
                 },
               ),
             ),
 
             // Nội dung theo tab
-            if (_selectedTabIndex == 0)
-              _buildWeekPlanContent()
-            else
-              _buildShoppingListPlaceholder(),
+            Expanded(
+              child: _selectedTabIndex == 0
+                  ? Column(
+                      children: [
+                        Expanded(child: _buildWeekPlanContent()),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          child: _showRecipeAddForm
+                              ? Container(
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(24),
+                                      topRight: Radius.circular(24),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, -4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: DraggableBottomSheet(
+                                    scrollController: _recipeScrollController,
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    )
+                  : _buildShoppingListPlaceholder(),
+            ),
           ],
         ),
       ),
@@ -100,28 +144,29 @@ class _PlanViewState extends State<PlanView> {
   }
 
   Widget _buildWeekPlanContent() {
-    return Expanded(
-      child: Column(
-        children: [
-          // Week selector
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: WeekSelector(
-              label: _currentWeek.label,
-              onPrevious: () {
-                // TODO: handle previous week
-              },
-              onNext: () {
-                // TODO: handle next week
-              },
-            ),
+    return Column(
+      children: [
+        // Week selector
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: WeekSelector(
+            label: _currentWeek.label,
+            onPrevious: () {
+              // TODO: handle previous week
+            },
+            onNext: () {
+              // TODO: handle next week
+            },
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 16),
 
-          // Meal grid
-          Expanded(
+        // Meal grid - Fixed position, không scroll
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const ClampingScrollPhysics(),
               child: MealGrid(
                 weekPlan: _currentWeek,
                 onDaySelected: (dayPlan, selectedDate) {
@@ -137,19 +182,17 @@ class _PlanViewState extends State<PlanView> {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildShoppingListPlaceholder() {
-    return const Expanded(
-      child: Center(
-        child: Text(
-          'Danh sách mua sắm\n(đang TODO)',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
-        ),
+    return const Center(
+      child: Text(
+        'Danh sách mua sắm\n(đang TODO)',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
       ),
     );
   }

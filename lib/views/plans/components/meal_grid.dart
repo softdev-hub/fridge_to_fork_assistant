@@ -90,19 +90,8 @@ class MealGrid extends StatelessWidget {
 
           return Expanded(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal:
-                    dayIndex == 0 || dayIndex == weekPlan.days.length - 1
-                    ? 0
-                    : 2,
-              ),
-              child: MealCard(
-                mealType: mealType,
-                meal: mealSlot.meal,
-                onTap: () {
-                  // TODO: open recipe detail or add meal
-                },
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: MealCard(mealType: mealType, meal: mealSlot.meal),
             ),
           );
         }),

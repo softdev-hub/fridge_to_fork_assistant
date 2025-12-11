@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../common/bottomNavigation.dart';
-import 'components/plan_tab_bar.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
 import 'components/missing_ingredients.dart';
@@ -20,11 +19,10 @@ class DayDetailView extends StatefulWidget {
 }
 
 class _DayDetailViewState extends State<DayDetailView> {
-  int _selectedTabIndex = 0; // 0: Lịch tuần, 1: Danh sách mua sắm
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -48,28 +46,10 @@ class _DayDetailViewState extends State<DayDetailView> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Tab bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: PlanTabBar(
-                selectedIndex: _selectedTabIndex,
-                onTabSelected: (index) {
-                  setState(() {
-                    _selectedTabIndex = index;
-                  });
-                },
-              ),
-            ),
-
-            // Content
-            if (_selectedTabIndex == 0)
-              _buildDayPlanContent()
-            else
-              _buildShoppingListContent(),
-          ],
+      body: Container(
+        color: const Color(0xFFF8F9FA),
+        child: SafeArea(
+          child: Column(children: [Expanded(child: _buildDayPlanContent())]),
         ),
       ),
       bottomNavigationBar: AppBottomNavigation(
@@ -82,28 +62,26 @@ class _DayDetailViewState extends State<DayDetailView> {
   }
 
   Widget _buildDayPlanContent() {
-    return Expanded(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Date header
-            _buildDateHeader(),
-            const SizedBox(height: 24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date header
+          _buildDateHeader(),
+          const SizedBox(height: 24),
 
-            // Meal cards
-            _buildMealCard(MealType.breakfast),
-            const SizedBox(height: 12),
-            _buildMealCard(MealType.lunch),
-            const SizedBox(height: 12),
-            _buildMealCard(MealType.dinner),
-            const SizedBox(height: 24),
+          // Meal cards
+          _buildMealCard(MealType.breakfast),
+          const SizedBox(height: 12),
+          _buildMealCard(MealType.lunch),
+          const SizedBox(height: 12),
+          _buildMealCard(MealType.dinner),
+          const SizedBox(height: 24),
 
-            // Missing ingredients section
-            const MissingIngredientsSection(),
-          ],
-        ),
+          // Missing ingredients section
+          const MissingIngredientsSection(),
+        ],
       ),
     );
   }
@@ -132,18 +110,6 @@ class _DayDetailViewState extends State<DayDetailView> {
       onTap: () {
         // TODO: Handle meal tap
       },
-    );
-  }
-
-  Widget _buildShoppingListContent() {
-    return const Expanded(
-      child: Center(
-        child: Text(
-          'Danh sách mua sắm\n(đang TODO)',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
-        ),
-      ),
     );
   }
 
