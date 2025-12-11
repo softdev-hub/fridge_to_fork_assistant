@@ -10,7 +10,12 @@ class AppBottomNavigation extends StatelessWidget {
     required this.onTap,
   });
 
-  Widget _buildItem(BuildContext context, IconData icon, String label, int index) {
+  Widget _buildItem(
+    BuildContext context,
+    IconData icon,
+    String label,
+    int index,
+  ) {
     final selected = index == currentIndex;
     final color = selected ? const Color(0xFF4CAF50) : Colors.grey[600];
     return Expanded(
@@ -24,7 +29,14 @@ class AppBottomNavigation extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 4),
-              Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -36,7 +48,7 @@ class AppBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
       child: SafeArea(

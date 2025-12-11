@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../common/bottom_navigation.dart';
+import '../common/bottomNavigation.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
 import 'components/missing_ingredients.dart';
@@ -22,6 +22,7 @@ class _DayDetailViewState extends State<DayDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -45,7 +46,12 @@ class _DayDetailViewState extends State<DayDetailView> {
           ),
         ],
       ),
-      body: SafeArea(child: _buildDayPlanContent()),
+      body: Container(
+        color: const Color(0xFFF8F9FA),
+        child: SafeArea(
+          child: Column(children: [Expanded(child: _buildDayPlanContent())]),
+        ),
+      ),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: 3,
         onTap: (index) {
@@ -56,29 +62,27 @@ class _DayDetailViewState extends State<DayDetailView> {
   }
 
   Widget _buildDayPlanContent() {
-    return Expanded(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Date header
-            _buildDateHeader(),
-            const SizedBox(height: 24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date header
+          _buildDateHeader(),
+          const SizedBox(height: 24),
 
-            // Meal cards
-            _buildMealCard(MealType.breakfast),
-            const SizedBox(height: 12),
-            _buildMealCard(MealType.lunch),
-            const SizedBox(height: 12),
-            _buildMealCard(MealType.dinner),
-            const SizedBox(height: 24),
-            _buildMealCard(MealType.dinner),
-            const SizedBox(height: 24),
-            // Missing ingredients section
-            const MissingIngredientsSection(),
-          ],
-        ),
+          // Meal cards
+          _buildMealCard(MealType.breakfast),
+          const SizedBox(height: 12),
+          _buildMealCard(MealType.lunch),
+          const SizedBox(height: 12),
+          _buildMealCard(MealType.dinner),
+          const SizedBox(height: 24),
+          _buildMealCard(MealType.dinner),
+          const SizedBox(height: 24),
+          // Missing ingredients section
+          const MissingIngredientsSection(),
+        ],
       ),
     );
   }
