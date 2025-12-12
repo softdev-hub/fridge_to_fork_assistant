@@ -4,6 +4,7 @@ import 'package:fridge_to_fork_assistant/views/common/bottomNavigation.dart';
 import 'package:fridge_to_fork_assistant/views/auth/profile_view.dart';
 import 'package:fridge_to_fork_assistant/views/pantry/pantry_view.dart';
 import 'package:fridge_to_fork_assistant/views/recipes/recipe_view.dart';
+import 'package:fridge_to_fork_assistant/views/recipes/recipe_matching_view.dart';
 import 'package:fridge_to_fork_assistant/views/plans/plan_view.dart';
 import 'package:fridge_to_fork_assistant/views/notification/notification.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,8 +31,9 @@ class _HomeViewState extends State<HomeView> {
   final List<Widget> _pages = [
     const _HomeContent(),
     const PantryView(),
-    const RecipeView(),
+    const RecipeTabNavigator(),
     const PlanView(),
+    const RecipeMatchingView(),
   ];
 
   @override
@@ -682,6 +684,33 @@ class _HomeContentState extends State<_HomeContent> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Nested navigator for the “Công thức” tab so we can push recipe-related
+/// screens without losing the bottom navigation from HomeView.
+class RecipeTabNavigator extends StatelessWidget {
+  const RecipeTabNavigator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/matching':
+            return MaterialPageRoute(
+              builder: (_) => const RecipeMatchingView(),
+              settings: settings,
+            );
+          case '/':
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const RecipeView(),
+              settings: settings,
+            );
+        }
+      },
     );
   }
 }

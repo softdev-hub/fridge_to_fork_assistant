@@ -1,42 +1,45 @@
 // lib/recipes/components/recipe_matching_filter_bar.dart
 
 import 'package:flutter/material.dart';
+import '../recipe_filter_view/recipe_filters_default_view.dart';
 
 class RecipeMatchingFilterBar extends StatelessWidget {
   final List<String> selectedFilters;
 
-  const RecipeMatchingFilterBar({
-    Key? key,
-    this.selectedFilters = const [],
-  }) : super(key: key);
+  const RecipeMatchingFilterBar({Key? key, this.selectedFilters = const []})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildFilterChip(
-            label: '≤ 20 phút',
-            icon: Icons.schedule,
-            isSelected: selectedFilters.contains('time'),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildFilterChip(
+                label: 'Dưới 20 phút',
+                icon: Icons.schedule,
+                isSelected: selectedFilters.contains('time'),
+              ),
+              _buildFilterChip(
+                label: 'Bữa tối',
+                icon: Icons.restaurant,
+                isSelected: selectedFilters.contains('meal'),
+              ),
+              _buildFilterChip(
+                label: 'Ẩm thực Á',
+                icon: Icons.public,
+                isSelected: selectedFilters.contains('cuisine'),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          _buildFilterChip(
-            label: 'Bữa tối',
-            icon: Icons.restaurant,
-            isSelected: selectedFilters.contains('meal'),
-          ),
-          const SizedBox(width: 8),
-          _buildFilterChip(
-            label: 'Ẩm thực Á',
-            icon: Icons.public,
-            isSelected: selectedFilters.contains('cuisine'),
-          ),
-          const SizedBox(width: 8),
-          _buildFilterButton(),
-        ],
-      ),
+        ),
+        const SizedBox(width: 8),
+        _buildFilterButton(context),
+      ],
     );
   }
 
@@ -79,10 +82,10 @@ class RecipeMatchingFilterBar extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterButton() {
+  Widget _buildFilterButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // TODO: open filter dialog
+        RecipeFiltersDefaultView.show(context);
       },
       child: Container(
         width: 32,
@@ -96,4 +99,3 @@ class RecipeMatchingFilterBar extends StatelessWidget {
     );
   }
 }
-
