@@ -1,10 +1,10 @@
 // lib/recipes/components/recipe_filter_bar.dart
 
 import 'package:flutter/material.dart';
-import '../recipe_filters_default_view.dart';
+import '../recipe_filter_view/recipe_filters_default_view.dart';
 
 class RecipeFilterBar extends StatelessWidget {
-  const RecipeFilterBar({Key? key}) : super(key: key);
+  const RecipeFilterBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +59,7 @@ class RecipeFilterBar extends StatelessWidget {
     return Builder(
       builder: (context) => GestureDetector(
         onTap: () {
-          RecipeFiltersView.show(context);
+          RecipeFiltersDefaultView.show(context);
         },
         child: Container(
           width: 32,
