@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'recipe_card_list.dart';
+import '../recipe_detail_view.dart';
 
 class RecipeCardItem extends StatelessWidget {
   final Recipe recipe;
@@ -12,7 +13,9 @@ class RecipeCardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // TODO: open recipe detail
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => RecipeDetailView(recipe: recipe)),
+        );
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

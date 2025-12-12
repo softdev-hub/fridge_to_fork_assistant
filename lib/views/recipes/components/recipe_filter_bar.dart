@@ -67,7 +67,6 @@ class RecipeFilterBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFE5E7EB),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF7DEA11), width: 1),
           ),
           child: const Icon(Icons.tune, size: 18, color: Color(0xFF6B7280)),
         ),
