@@ -20,7 +20,6 @@ class Recipe {
   final int? missingCount;
   final int? expiringCount;
   final bool isExpiring;
-  final bool isFaded;
 
   Recipe({
     required this.name,
@@ -33,7 +32,6 @@ class Recipe {
     this.missingCount,
     this.expiringCount,
     this.isExpiring = false,
-    this.isFaded = false,
   });
 }
 
@@ -79,7 +77,6 @@ final List<Recipe> dummyRecipes = [
     availableIngredients: 7,
     totalIngredients: 9,
     missingCount: 2,
-    isFaded: true,
   ),
 ];
 
@@ -125,8 +122,8 @@ class RecipeCardList extends StatelessWidget {
       );
     } else {
       return ListView.separated(
-        itemCount: recipes.length,
         physics: const BouncingScrollPhysics(),
+        itemCount: recipes.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           return RecipeCardItem(recipe: recipes[index]);

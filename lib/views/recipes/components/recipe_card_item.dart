@@ -17,9 +17,7 @@ class RecipeCardItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: recipe.isExpiring
-              ? const Color(0xFFF3DAAF)
-              : Colors.white,
+          color: recipe.isExpiring ? const Color(0xFFFEFBF5) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: recipe.isExpiring
@@ -43,31 +41,23 @@ class RecipeCardItem extends StatelessWidget {
                 top: 10,
                 left: 10,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF59E0B).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    'Ưu tiên dùng sớm',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFB45309),
-                    ),
-                  ),
                 ),
               ),
-            Opacity(
-              opacity: recipe.isFaded ? 0.4 : 1.0,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildThumbnail(),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildBody()),
-                ],
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildThumbnail(),
+                const SizedBox(width: 12),
+                Expanded(child: _buildBody()),
+              ],
             ),
           ],
         ),
@@ -84,11 +74,7 @@ class RecipeCardItem extends StatelessWidget {
         border: Border.all(color: const Color(0xFFEEF0F4)),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Icon(
-        Icons.calendar_today,
-        size: 48,
-        color: Color(0xFF9CA3AF),
-      ),
+      child: const Icon(Icons.image, size: 48, color: Color(0xFF9CA3AF)),
     );
   }
 
@@ -109,36 +95,37 @@ class RecipeCardItem extends StatelessWidget {
         _buildMetaRow(),
         const SizedBox(height: 8),
         _buildMatchRow(),
-        if (recipe.expiringCount != null) ...[
-          const SizedBox(height: 8),
-          _buildExpiryRow(),
-        ] else if (recipe.missingCount != null) ...[
-          const SizedBox(height: 8),
-          _buildMissingBadge(),
-        ],
       ],
     );
   }
 
   Widget _buildMetaRow() {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildPill(
-          icon: '⏱',
-          label: recipe.timeLabel,
-          type: PillType.time,
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _buildPill(icon: '⏱', label: recipe.timeLabel, type: PillType.time),
+            _buildPill(
+              icon: _getDifficultyIcon(),
+              label: _getDifficultyLabel(),
+              type: _getDifficultyPillType(),
+            ),
+          ],
         ),
-        _buildPill(
-          icon: _getDifficultyIcon(),
-          label: _getDifficultyLabel(),
-          type: _getDifficultyPillType(),
-        ),
-        _buildPill(
-          icon: _getMealIcon(),
-          label: _getMealLabel(),
-          type: PillType.meal,
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _buildPill(
+              icon: _getMealIcon(),
+              label: _getMealLabel(),
+              type: PillType.meal,
+            ),
+          ],
         ),
       ],
     );
@@ -187,10 +174,7 @@ class RecipeCardItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            icon,
-            style: const TextStyle(fontSize: 11),
-          ),
+          Text(icon, style: const TextStyle(fontSize: 11)),
           const SizedBox(width: 6),
           Text(
             label,
@@ -206,29 +190,23 @@ class RecipeCardItem extends StatelessWidget {
   }
 
   Widget _buildMatchRow() {
-    final percentage = (recipe.availableIngredients / recipe.totalIngredients) * 100;
     final isFull = recipe.matchType == MatchType.full;
+    final List<Widget> badges = [_buildMatchBadge(isFull: isFull)];
 
-    return Row(
-      children: [
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildMatchBadge(isFull: isFull),
-              _buildProgressBar(percentage: percentage, isFull: isFull),
-            ],
-          ),
-        ),
-      ],
-    );
+    if (recipe.missingCount != null) {
+      badges.add(_buildMissingBadge());
+    }
+    if (recipe.expiringCount != null) {
+      badges.add(_buildExpiryRow());
+    }
+
+    return Wrap(spacing: 8, runSpacing: 8, children: badges);
   }
 
   Widget _buildMatchBadge({required bool isFull}) {
     final label = isFull
-        ? '✅ Đủ ${recipe.availableIngredients}/${recipe.totalIngredients} nguyên liệu'
-        : '🧩 Có ${recipe.availableIngredients}/${recipe.totalIngredients} nguyên liệu';
+        ? 'Đủ ${recipe.availableIngredients}/${recipe.totalIngredients} nguyên liệu'
+        : 'Có ${recipe.availableIngredients}/${recipe.totalIngredients} nguyên liệu';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -243,52 +221,20 @@ class RecipeCardItem extends StatelessWidget {
               : const Color(0xFF3B82F6).withOpacity(0.25),
         ),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: isFull ? const Color(0xFF065F46) : const Color(0xFF1E3A8A),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProgressBar({required double percentage, required bool isFull}) {
-    return Container(
-      width: 90,
-      height: 6,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF2F7),
-        border: Border.all(color: const Color(0xFFEEF0F4)),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 300),
-          tween: Tween(begin: 0.0, end: percentage / 100),
-          builder: (context, value, child) {
-            return Stack(
-              children: [
-                Container(
-                  width: 90 * value,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isFull
-                          ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                          : [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(isFull ? '✅' : '🧩', style: const TextStyle(fontSize: 11)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isFull ? const Color(0xFF065F46) : const Color(0xFF1E3A8A),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -299,9 +245,7 @@ class RecipeCardItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF59E0B).withOpacity(0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFF59E0B).withOpacity(0.28),
-        ),
+        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.28)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -327,9 +271,7 @@ class RecipeCardItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF59E0B).withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFF59E0B).withOpacity(0.25),
-        ),
+        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -405,10 +347,4 @@ class RecipeCardItem extends StatelessWidget {
   }
 }
 
-enum PillType {
-  time,
-  meal,
-  difficultyEasy,
-  difficultyMedium,
-  difficultyHard,
-}
+enum PillType { time, meal, difficultyEasy, difficultyMedium, difficultyHard }
