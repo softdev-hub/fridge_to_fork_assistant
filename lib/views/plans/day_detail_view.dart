@@ -28,7 +28,7 @@ class _DayDetailViewState extends State<DayDetailView> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        titleSpacing: 0, // hoặc 8 nếu muốn cách nhẹ
+        titleSpacing: 0,
         centerTitle: false,
         title: const Text(
           'Thực đơn ngày',
@@ -78,7 +78,8 @@ class _DayDetailViewState extends State<DayDetailView> {
           const SizedBox(height: 12),
           _buildMealCard(MealType.dinner),
           const SizedBox(height: 24),
-
+          _buildMealCard(MealType.dinner),
+          const SizedBox(height: 24),
           // Missing ingredients section
           const MissingIngredientsSection(),
         ],

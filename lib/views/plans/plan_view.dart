@@ -4,6 +4,7 @@ import 'components/week_selector.dart';
 import 'components/meal_grid.dart';
 import 'components/plan_models.dart';
 import 'components/calendar_dialog.dart';
+import 'components/shopping_list.dart';
 import 'components/draggable_bottom_sheet.dart';
 import 'day_detail_view.dart';
 
@@ -39,21 +40,22 @@ class _PlanViewState extends State<PlanView> {
         elevation: 0,
         scrolledUnderElevation: 0, //không tint thêm màu
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
+          if (_selectedTabIndex == 0)
+            Container(
+              margin: const EdgeInsets.only(right: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.ios_share, color: Colors.grey, size: 20),
+                onPressed: () {
+                  setState(() {
+                    _showRecipeAddForm = !_showRecipeAddForm;
+                  });
+                },
+              ),
             ),
-            child: IconButton(
-              icon: const Icon(Icons.ios_share, color: Colors.grey, size: 20),
-              onPressed: () {
-                setState(() {
-                  _showRecipeAddForm = !_showRecipeAddForm;
-                });
-              },
-            ),
-          ),
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
@@ -188,12 +190,8 @@ class _PlanViewState extends State<PlanView> {
   }
 
   Widget _buildShoppingListPlaceholder() {
-    return const Center(
-      child: Text(
-        'Danh sách mua sắm\n(đang TODO)',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
-      ),
+    return const Expanded(
+      child: Padding(padding: EdgeInsets.all(16), child: ShoppingListSection()),
     );
   }
 }
