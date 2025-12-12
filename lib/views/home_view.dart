@@ -205,36 +205,49 @@ class _HomeContentState extends State<_HomeContent> {
             ),
           ],
         ),
-        // Notification button
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[800] : Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(10),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+        Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/welcome_logo.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
               ),
-            ],
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.notifications_outlined,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
-              size: 24,
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationPage(),
+            const SizedBox(width: 20),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[800] : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(10),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  size: 24,
                 ),
-              );
-            },
-          ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationPage(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );
