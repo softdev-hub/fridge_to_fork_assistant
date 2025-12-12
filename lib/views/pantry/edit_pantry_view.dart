@@ -6,6 +6,12 @@ import '../../models/pantry_item.dart';
 import '../../models/ingredient.dart';
 import '../../models/enums.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
+import 'components/pantry_constants.dart';
+import 'components/pantry_header.dart';
+import 'components/pantry_placeholder_image.dart';
+import 'components/pantry_label.dart';
+import 'components/pantry_date_field.dart';
+import 'components/pantry_input_styles.dart';
 
 class EditPantryView extends StatefulWidget {
   final PantryItem item;
@@ -33,9 +39,6 @@ class _EditPantryViewState extends State<EditPantryView> {
   // Error states for inline validation
   String? _purchaseDateError;
   String? _expiryDateError;
-
-  static const Color primaryColor = Color(0xFF4CAF50);
-  static const Color backgroundColor = Color(0xFFF8F9FA);
 
   @override
   void initState() {
@@ -65,21 +68,11 @@ class _EditPantryViewState extends State<EditPantryView> {
   }
 
   Future<void> _selectDate(BuildContext context, bool isPurchaseDate) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
+    final DateTime? picked = await PantryDateField.showPicker(
+      context,
       initialDate: isPurchaseDate
           ? (_purchaseDate ?? DateTime.now())
           : (_expiryDate ?? DateTime.now()),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: primaryColor),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -156,7 +149,7 @@ class _EditPantryViewState extends State<EditPantryView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Đã lưu thay đổi!'),
-            backgroundColor: primaryColor,
+            backgroundColor: PantryConstants.primaryColor,
           ),
         );
         Navigator.pop(context, true);
@@ -179,11 +172,16 @@ class _EditPantryViewState extends State<EditPantryView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : backgroundColor,
+      backgroundColor: isDark
+          ? PantryConstants.backgroundDark
+          : PantryConstants.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(isDark),
+            PantryHeader(
+              title: 'Chỉnh sửa Nguyên liệu',
+              onBack: () => Navigator.pop(context),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -199,19 +197,17 @@ class _EditPantryViewState extends State<EditPantryView> {
                       const SizedBox(height: 16),
                       _buildQuantityField(isDark),
                       const SizedBox(height: 16),
-                      _buildDateField(
-                        'Ngày mua',
-                        _purchaseDate,
-                        () => _selectDate(context, true),
-                        isDark,
+                      PantryDateField(
+                        label: 'Ngày mua',
+                        date: _purchaseDate,
+                        onTap: () => _selectDate(context, true),
                         errorText: _purchaseDateError,
                       ),
                       const SizedBox(height: 16),
-                      _buildDateField(
-                        'Hạn sử dụng',
-                        _expiryDate,
-                        () => _selectDate(context, false),
-                        isDark,
+                      PantryDateField(
+                        label: 'Hạn sử dụng',
+                        date: _expiryDate,
+                        onTap: () => _selectDate(context, false),
                         errorText: _expiryDateError,
                       ),
                       const SizedBox(height: 16),
@@ -229,50 +225,13 @@ class _EditPantryViewState extends State<EditPantryView> {
     );
   }
 
-  Widget _buildHeader(bool isDark) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          color: (isDark ? const Color(0xFF121212) : backgroundColor).withAlpha(
-            204,
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: isDark ? Colors.grey[200] : Colors.grey[800],
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'Chỉnh sửa Nguyên liệu',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.grey[100] : Colors.grey[900],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildImageSection(bool isDark) {
     return Center(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
             child: widget.item.imageUrl != null
                 ? Image.network(
                     widget.item.imageUrl!,
@@ -280,9 +239,9 @@ class _EditPantryViewState extends State<EditPantryView> {
                     height: 128,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
-                        _buildPlaceholderImage(isDark),
+                        PantryPlaceholderImage.medium(),
                   )
-                : _buildPlaceholderImage(isDark),
+                : PantryPlaceholderImage.medium(),
           ),
           Positioned(
             bottom: -8,
@@ -294,7 +253,7 @@ class _EditPantryViewState extends State<EditPantryView> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: primaryColor,
+                  color: PantryConstants.primaryColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -313,32 +272,16 @@ class _EditPantryViewState extends State<EditPantryView> {
     );
   }
 
-  Widget _buildPlaceholderImage(bool isDark) {
-    return Container(
-      width: 128,
-      height: 128,
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[800] : Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        Icons.restaurant,
-        size: 48,
-        color: isDark ? Colors.grey[600] : Colors.grey[400],
-      ),
-    );
-  }
-
   Widget _buildNameField(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('Tên Nguyên liệu', isDark),
+        const PantryLabel(text: 'Tên Nguyên liệu'),
         const SizedBox(height: 6),
         TextFormField(
           controller: _nameController,
           style: TextStyle(color: isDark ? Colors.grey[100] : Colors.grey[900]),
-          decoration: _inputDecoration('Ví dụ: Thịt bò', isDark),
+          decoration: pantryInputDecoration('Ví dụ: Thịt bò', isDark),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
               return 'Vui lòng nhập tên nguyên liệu';
@@ -354,13 +297,13 @@ class _EditPantryViewState extends State<EditPantryView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('Đơn vị', isDark),
+        const PantryLabel(text: 'Đơn vị'),
         const SizedBox(height: 6),
         DropdownButtonFormField<UnitEnum>(
           value: _selectedUnit,
           dropdownColor: isDark ? Colors.grey[800] : Colors.white,
           style: TextStyle(color: isDark ? Colors.grey[100] : Colors.grey[900]),
-          decoration: _inputDecoration('Chọn đơn vị', isDark),
+          decoration: pantryInputDecoration('Chọn đơn vị', isDark),
           items: UnitEnum.values.map((unit) {
             return DropdownMenuItem(value: unit, child: Text(unit.displayName));
           }).toList(),
@@ -378,13 +321,13 @@ class _EditPantryViewState extends State<EditPantryView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('Số lượng', isDark),
+        const PantryLabel(text: 'Số lượng'),
         const SizedBox(height: 6),
         TextFormField(
           controller: _quantityController,
           keyboardType: TextInputType.number,
           style: TextStyle(color: isDark ? Colors.grey[100] : Colors.grey[900]),
-          decoration: _inputDecoration('200', isDark),
+          decoration: pantryInputDecoration('200', isDark),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
               return 'Vui lòng nhập số lượng';
@@ -399,78 +342,17 @@ class _EditPantryViewState extends State<EditPantryView> {
     );
   }
 
-  Widget _buildDateField(
-    String label,
-    DateTime? date,
-    VoidCallback onTap,
-    bool isDark, {
-    String? errorText,
-  }) {
-    final hasError = errorText != null && errorText.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel(label, isDark),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[800] : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: hasError
-                    ? Colors.red
-                    : (isDark ? Colors.grey[700]! : Colors.grey[200]!),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  date != null
-                      ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'
-                      : 'Chọn ngày',
-                  style: TextStyle(
-                    color: date != null
-                        ? (isDark ? Colors.grey[100] : Colors.grey[900])
-                        : (isDark ? Colors.grey[500] : Colors.grey[400]),
-                  ),
-                ),
-                Icon(
-                  Icons.calendar_today,
-                  size: 20,
-                  color: isDark ? Colors.grey[400] : Colors.grey[500],
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (hasError)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, left: 12),
-            child: Text(
-              errorText,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _buildNoteField(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('Ghi chú', isDark),
+        const PantryLabel(text: 'Ghi chú'),
         const SizedBox(height: 6),
         TextFormField(
           controller: _noteController,
           maxLines: 3,
           style: TextStyle(color: isDark ? Colors.grey[100] : Colors.grey[900]),
-          decoration: _inputDecoration(
+          decoration: pantryInputDecoration(
             'Ví dụ: Thịt bò mềm, dùng cho món xào',
             isDark,
           ),
@@ -482,7 +364,9 @@ class _EditPantryViewState extends State<EditPantryView> {
   Widget _buildFooter(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: isDark ? const Color(0xFF121212) : backgroundColor,
+      color: isDark
+          ? PantryConstants.backgroundDark
+          : PantryConstants.backgroundColor,
       child: Row(
         children: [
           // Cancel button
@@ -493,7 +377,9 @@ class _EditPantryViewState extends State<EditPantryView> {
                 backgroundColor: isDark ? Colors.grey[700] : Colors.grey[200],
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(
+                    PantryConstants.borderRadius,
+                  ),
                 ),
                 elevation: 0,
               ),
@@ -513,10 +399,12 @@ class _EditPantryViewState extends State<EditPantryView> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: PantryConstants.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(
+                    PantryConstants.borderRadius,
+                  ),
                 ),
               ),
               child: _isLoading
@@ -540,49 +428,6 @@ class _EditPantryViewState extends State<EditPantryView> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLabel(String text, bool isDark) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: isDark ? Colors.grey[300] : Colors.grey[700],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint, bool isDark) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[400]),
-      filled: true,
-      fillColor: isDark ? Colors.grey[800] : Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primaryColor),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 }

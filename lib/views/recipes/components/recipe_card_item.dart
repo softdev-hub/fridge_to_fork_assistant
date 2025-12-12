@@ -281,12 +281,16 @@ class RecipeCardItem extends StatelessWidget {
         children: [
           const Text('⚠', style: TextStyle(fontSize: 11)),
           const SizedBox(width: 6),
-          Text(
-            'Dùng ${recipe.expiringCount} nguyên liệu sắp hết hạn',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF92400E),
+          Flexible(
+            child: Text(
+              'Dùng ${recipe.expiringCount} NL sắp hết hạn',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF92400E),
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],

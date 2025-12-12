@@ -13,11 +13,11 @@ class RecipeFilterBar extends StatelessWidget {
       child: Row(
         children: [
           _buildFilterChip(label: 'Thời gian', icon: Icons.schedule),
-          const SizedBox(width: 8),
+          const SizedBox(width: 3),
           _buildFilterChip(label: 'Bữa ăn', icon: Icons.restaurant),
-          const SizedBox(width: 8),
+          const SizedBox(width: 3),
           _buildFilterChip(label: 'Ẩm thực', icon: Icons.public),
-          const SizedBox(width: 8),
+          const SizedBox(width: 3),
           _buildFilterButton(),
         ],
       ),
@@ -44,7 +44,7 @@ class RecipeFilterBar extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF6B7280),
               ),
