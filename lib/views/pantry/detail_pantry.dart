@@ -4,6 +4,8 @@ import '../../controllers/pantry_item_controller.dart';
 import '../../models/pantry_item.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
 import 'edit_pantry_view.dart';
+import 'components/pantry_constants.dart';
+import 'components/pantry_placeholder_image.dart';
 
 class DetailPantryView extends StatefulWidget {
   final PantryItem item;
@@ -19,10 +21,6 @@ class _DetailPantryViewState extends State<DetailPantryView> {
   late PantryItem _item;
   bool _isDeleting = false;
 
-  static const Color primaryColor = Color(0xFF4CAF50);
-  static const Color backgroundColor = Color(0xFFF6F8F6);
-  static const Color backgroundDark = Color(0xFF102216);
-
   @override
   void initState() {
     super.initState();
@@ -33,7 +31,11 @@ class _DetailPantryViewState extends State<DetailPantryView> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            PantryConstants.borderRadiusLarge,
+          ),
+        ),
         title: const Text(
           'Xác nhận Xóa',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -86,7 +88,7 @@ class _DetailPantryViewState extends State<DetailPantryView> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Đã xóa nguyên liệu!'),
-              backgroundColor: primaryColor,
+              backgroundColor: PantryConstants.primaryColor,
             ),
           );
           Navigator.pop(context, true);
@@ -107,7 +109,9 @@ class _DetailPantryViewState extends State<DetailPantryView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? backgroundDark : backgroundColor,
+      backgroundColor: isDark
+          ? PantryConstants.backgroundDetailDark
+          : PantryConstants.backgroundDetail,
       body: Stack(
         children: [
           // Main content
@@ -131,6 +135,10 @@ class _DetailPantryViewState extends State<DetailPantryView> {
   }
 
   Widget _buildHeader(bool isDark) {
+    final bgColor = isDark
+        ? PantryConstants.backgroundDetailDark
+        : PantryConstants.backgroundDetail;
+
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -141,13 +149,13 @@ class _DetailPantryViewState extends State<DetailPantryView> {
             right: 16,
             bottom: 8,
           ),
-          color: (isDark ? backgroundDark : backgroundColor).withAlpha(204),
+          color: bgColor.withAlpha(204),
           child: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.transparent,
                 ),
@@ -189,7 +197,9 @@ class _DetailPantryViewState extends State<DetailPantryView> {
       child: Container(
         height: 288,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(
+            PantryConstants.borderRadiusLarge,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(40),
@@ -199,52 +209,33 @@ class _DetailPantryViewState extends State<DetailPantryView> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(
+            PantryConstants.borderRadiusLarge,
+          ),
           child: _item.imageUrl != null
               ? Image.network(
                   _item.imageUrl!,
                   width: double.infinity,
                   height: 288,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _buildPlaceholderImage(isDark),
+                  errorBuilder: (_, __, ___) => PantryPlaceholderImage.large(),
                 )
-              : _buildPlaceholderImage(isDark),
+              : PantryPlaceholderImage.large(),
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholderImage(bool isDark) {
-    return Container(
-      width: double.infinity,
-      height: 288,
-      color: isDark ? Colors.grey[800] : Colors.grey[200],
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.restaurant,
-            size: 64,
-            color: isDark ? Colors.grey[600] : Colors.grey[400],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Không có ảnh',
-            style: TextStyle(
-              color: isDark ? Colors.grey[500] : Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDetailsSection(bool isDark) {
+    final bgColor = isDark
+        ? PantryConstants.backgroundDetailDark
+        : PantryConstants.backgroundDetail;
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       decoration: BoxDecoration(
-        color: isDark ? backgroundDark : backgroundColor,
+        color: bgColor,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -366,6 +357,10 @@ class _DetailPantryViewState extends State<DetailPantryView> {
   }
 
   Widget _buildFooter(bool isDark) {
+    final bgColor = isDark
+        ? PantryConstants.backgroundDetailDark
+        : PantryConstants.backgroundDetail;
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -374,7 +369,7 @@ class _DetailPantryViewState extends State<DetailPantryView> {
         MediaQuery.of(context).padding.bottom + 16,
       ),
       decoration: BoxDecoration(
-        color: isDark ? backgroundDark : backgroundColor,
+        color: bgColor,
         border: Border(
           top: BorderSide(
             color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
@@ -401,9 +396,11 @@ class _DetailPantryViewState extends State<DetailPantryView> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: PantryConstants.primaryColor,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(
+                    PantryConstants.borderRadiusXLarge,
+                  ),
                 ),
                 elevation: 0,
               ),
@@ -429,7 +426,9 @@ class _DetailPantryViewState extends State<DetailPantryView> {
                     ? Colors.red[900]!.withAlpha(40)
                     : Colors.red[50],
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(
+                    PantryConstants.borderRadiusXLarge,
+                  ),
                 ),
                 elevation: 0,
               ),

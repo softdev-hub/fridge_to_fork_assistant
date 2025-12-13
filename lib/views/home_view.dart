@@ -7,6 +7,7 @@ import 'package:fridge_to_fork_assistant/views/recipes/recipe_view.dart';
 import 'package:fridge_to_fork_assistant/views/recipes/recipe_matching_view.dart';
 import 'package:fridge_to_fork_assistant/views/plans/plan_view.dart';
 import 'package:fridge_to_fork_assistant/views/notification/notification.dart';
+import 'package:fridge_to_fork_assistant/views/auth/login_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile.dart';
 import '../models/pantry_item.dart';
@@ -28,18 +29,22 @@ class _HomeViewState extends State<HomeView> {
     await authService.signOut();
   }
 
-  final List<Widget> _pages = [
-    const _HomeContent(),
-    const PantryView(),
-    const RecipeTabNavigator(),
-    const PlanView(),
-    const RecipeMatchingView(),
-  ];
+  void _switchTab(int index) {
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      _HomeContent(onTabChange: _switchTab),
+      const PantryView(),
+      const RecipeTabNavigator(),
+      const PlanView(),
+      const RecipeMatchingView(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
@@ -49,7 +54,9 @@ class _HomeViewState extends State<HomeView> {
 }
 
 class _HomeContent extends StatefulWidget {
-  const _HomeContent();
+  final void Function(int) onTabChange;
+
+  const _HomeContent({required this.onTabChange});
 
   @override
   State<_HomeContent> createState() => _HomeContentState();
@@ -84,7 +91,9 @@ class _HomeContentState extends State<_HomeContent> {
       }
 
       final items = await _pantryController.getExpiringItems(days: 7);
-      items.sort((a, b) {
+      // Filter out already expired items (only show items expiring soon, not expired)
+      final notExpiredItems = items.where((item) => !item.isExpired).toList();
+      notExpiredItems.sort((a, b) {
         if (a.expiryDate == null && b.expiryDate == null) return 0;
         if (a.expiryDate == null) return 1;
         if (b.expiryDate == null) return -1;
@@ -92,7 +101,7 @@ class _HomeContentState extends State<_HomeContent> {
       });
 
       setState(() {
-        _expiringItems = items.take(4).toList();
+        _expiringItems = notExpiredItems.take(4).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -145,78 +154,85 @@ class _HomeContentState extends State<_HomeContent> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            // Avatar button
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'profile') {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const ProfilePage(),
+        Expanded(
+          child: Row(
+            children: [
+              // Avatar button
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'profile') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ProfilePage(),
+                      ),
+                    );
+                  } else if (value == 'logout') {
+                    await AuthService().signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginView(),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'profile',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline,
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Hồ sơ'),
+                      ],
                     ),
-                  );
-                } else if (value == 'logout') {
-                  AuthService().signOut();
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.person_outline,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                      const SizedBox(width: 12),
-                      const Text('Hồ sơ'),
-                    ],
                   ),
-                ),
-                PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: Colors.red[400]),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Đăng xuất',
-                        style: TextStyle(color: Colors.red[400]),
-                      ),
-                    ],
+                  PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: Colors.red[400]),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Đăng xuất',
+                          style: TextStyle(color: Colors.red[400]),
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+                offset: const Offset(0, 56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-              offset: const Offset(0, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                child: _buildAvatar(isDark),
               ),
-              child: _buildAvatar(isDark),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              greetingText,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.grey[100] : Colors.grey[800],
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  greetingText,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.grey[100] : Colors.grey[800],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/images/welcome_logo.png',
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 12),
             Container(
               width: 44,
               height: 44,
@@ -310,7 +326,9 @@ class _HomeContentState extends State<_HomeContent> {
                 ],
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  widget.onTabChange(1); // Switch to PantryView tab
+                },
                 style: TextButton.styleFrom(padding: EdgeInsets.zero),
                 child: const Text(
                   'Xem tất cả',
@@ -556,7 +574,9 @@ class _HomeContentState extends State<_HomeContent> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    widget.onTabChange(3); // Switch to PlanView tab
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark
                         ? const Color(0xFF1B4D1C)
@@ -588,13 +608,32 @@ class _HomeContentState extends State<_HomeContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Hôm nay ăn gì?',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.grey[100] : Colors.grey[800],
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Hôm nay ăn gì?',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.grey[100] : Colors.grey[800],
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                widget.onTabChange(2); // Switch to RecipeView tab
+              },
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              child: const Text(
+                'Xem tất cả',
+                style: TextStyle(
+                  color: Color(0xFF4CAF50),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         _buildRecipeCard(

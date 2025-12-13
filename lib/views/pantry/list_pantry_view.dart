@@ -4,6 +4,8 @@ import '../../controllers/pantry_item_controller.dart';
 import '../../models/pantry_item.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
 import 'detail_pantry.dart';
+import 'components/pantry_constants.dart';
+import 'components/pantry_placeholder_image.dart';
 
 class ListPantryView extends StatefulWidget {
   final int ingredientId;
@@ -24,9 +26,6 @@ class _ListPantryViewState extends State<ListPantryView> {
   List<PantryItem> _items = [];
   bool _isLoading = true;
 
-  static const Color primaryColor = Color(0xFF4CAF50);
-  static const Color backgroundColor = Color(0xFFF8F9FA);
-
   @override
   void initState() {
     super.initState();
@@ -39,7 +38,7 @@ class _ListPantryViewState extends State<ListPantryView> {
       final items = await _controller.getPantryItemsByIngredient(
         widget.ingredientId,
       );
-      // Sort by expiry date
+      // Sort by expiry date ascending
       app_date_utils.DateUtils.sortByDate(items, (item) => item.expiryDate);
       setState(() {
         _items = items;
@@ -50,7 +49,7 @@ class _ListPantryViewState extends State<ListPantryView> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     }
   }
@@ -59,19 +58,52 @@ class _ListPantryViewState extends State<ListPantryView> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận xóa'),
-        content: Text(
-          'Bạn có chắc muốn xóa tất cả ${widget.ingredientName} khỏi kho?',
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            PantryConstants.borderRadiusLarge,
+          ),
+        ),
+        title: const Text(
+          'Xác nhận Xóa',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Bạn có chắc chắn muốn xóa tất cả nguyên liệu này?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.grey[200],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Hủy',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Xóa'),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Xóa tất cả',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -85,12 +117,6 @@ class _ListPantryViewState extends State<ListPantryView> {
           }
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã xóa nguyên liệu!'),
-              backgroundColor: primaryColor,
-            ),
-          );
           Navigator.pop(context, true);
         }
       } catch (e) {
@@ -108,18 +134,14 @@ class _ListPantryViewState extends State<ListPantryView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      backgroundColor: isDark
+          ? PantryConstants.backgroundDark
+          : PantryConstants.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(isDark),
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: primaryColor),
-                    )
-                  : _buildContent(isDark),
-            ),
+            Expanded(child: _buildContent(isDark)),
             _buildFooter(isDark),
           ],
         ),
@@ -133,16 +155,11 @@ class _ListPantryViewState extends State<ListPantryView> {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: (isDark ? const Color(0xFF1E1E1E) : Colors.white).withAlpha(
-              204,
-            ),
-            border: Border(
-              bottom: BorderSide(
-                color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-              ),
-            ),
-          ),
+          color:
+              (isDark
+                      ? PantryConstants.backgroundDark
+                      : PantryConstants.backgroundColor)
+                  .withAlpha(204),
           child: Row(
             children: [
               IconButton(
@@ -154,7 +171,7 @@ class _ListPantryViewState extends State<ListPantryView> {
               ),
               Expanded(
                 child: Text(
-                  'Chi tiết Nguyên liệu',
+                  widget.ingredientName,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20,
@@ -163,7 +180,15 @@ class _ListPantryViewState extends State<ListPantryView> {
                   ),
                 ),
               ),
-              const SizedBox(width: 32),
+              IconButton(
+                onPressed: _items.isNotEmpty ? _deleteAllItems : null,
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: _items.isNotEmpty
+                      ? (isDark ? Colors.red[300] : Colors.red[400])
+                      : Colors.grey,
+                ),
+              ),
             ],
           ),
         ),
@@ -172,72 +197,48 @@ class _ListPantryViewState extends State<ListPantryView> {
   }
 
   Widget _buildContent(bool isDark) {
-    return SingleChildScrollView(
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: PantryConstants.primaryColor),
+      );
+    }
+
+    if (_items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Không có nguyên liệu',
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Ingredient name header
-          Text(
-            'Tên Nguyên liệu',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark ? Colors.grey[400] : Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            widget.ingredientName,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.grey[100] : Colors.grey[900],
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Items list
-          if (_items.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.inventory_2_outlined,
-                      size: 64,
-                      color: isDark ? Colors.grey[600] : Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Không có nguyên liệu nào',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            ...List.generate(
-              _items.length,
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildItemCard(_items[index], isDark),
-              ),
-            ),
-        ],
-      ),
+      itemCount: _items.length,
+      itemBuilder: (context, index) => _buildItemCard(_items[index], isDark),
     );
   }
 
   Widget _buildItemCard(PantryItem item, bool isDark) {
-    final daysLeft = app_date_utils.DateUtils.daysUntil(item.expiryDate);
-    final isExpired = daysLeft != null && daysLeft < 0;
-    final isExpiringSoon = daysLeft != null && daysLeft >= 0 && daysLeft <= 3;
+    final daysLeft = item.daysUntilExpiry;
+    final expiryColor = PantryConstants.getExpiryColor(daysLeft);
+    final expiryText = PantryConstants.getExpiryText(daysLeft);
 
-    return InkWell(
+    return GestureDetector(
       onTap: () async {
         final result = await Navigator.push(
           context,
@@ -247,71 +248,77 @@ class _ListPantryViewState extends State<ListPantryView> {
           _loadData();
         }
       },
-      borderRadius: BorderRadius.circular(16),
       child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.grey[800]!.withAlpha(128) : Colors.grey[50],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+          color: isDark ? Colors.grey[850] : Colors.white,
+          borderRadius: BorderRadius.circular(
+            PantryConstants.borderRadiusLarge,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(13),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             // Image
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
               child: item.imageUrl != null
                   ? Image.network(
                       item.imageUrl!,
-                      width: 80,
-                      height: 80,
+                      width: 64,
+                      height: 64,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
-                          _buildPlaceholderImage(isDark),
+                          const PantryPlaceholderImage(size: 64),
                     )
-                  : _buildPlaceholderImage(isDark),
+                  : const PantryPlaceholderImage(size: 64),
             ),
             const SizedBox(width: 16),
             // Details
             Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Quantity row
+                  // Quantity
                   _buildDetailRow(
-                    icon: Icons.scale,
-                    iconBgColor: Colors.green[100]!,
-                    iconBgColorDark: Colors.green[900]!.withAlpha(102),
-                    iconColor: Colors.green[600]!,
-                    iconColorDark: Colors.green[400]!,
+                    icon: Icons.inventory_2,
+                    iconBgColor: Colors.blue[50]!,
+                    iconBgColorDark: Colors.blue[900]!.withAlpha(40),
+                    iconColor: Colors.blue[400]!,
+                    iconColorDark: Colors.blue[300]!,
                     label: 'Số lượng',
                     value:
                         '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} ${item.unit.displayName}',
-                    valueColor: isDark ? Colors.grey[100]! : Colors.grey[900]!,
+                    valueColor: isDark ? Colors.white : Colors.grey[900]!,
                     isDark: isDark,
                   ),
-                  const SizedBox(height: 12),
-                  // Expiry row
+                  const SizedBox(height: 8),
+                  // Expiry
                   _buildDetailRow(
-                    icon: Icons.calendar_today,
-                    iconBgColor: Colors.orange[100]!,
-                    iconBgColorDark: Colors.orange[900]!.withAlpha(102),
-                    iconColor: Colors.orange[600]!,
-                    iconColorDark: Colors.orange[400]!,
+                    icon: Icons.access_time,
+                    iconBgColor: expiryColor.withAlpha(26),
+                    iconBgColorDark: expiryColor.withAlpha(40),
+                    iconColor: expiryColor,
+                    iconColorDark: expiryColor,
                     label: 'Hạn sử dụng',
-                    value: app_date_utils.DateUtils.formatDate(item.expiryDate),
-                    valueColor: isExpired
-                        ? Colors.red[500]!
-                        : (isExpiringSoon
-                              ? Colors.orange[500]!
-                              : (isDark
-                                    ? Colors.grey[100]!
-                                    : Colors.grey[900]!)),
+                    value: expiryText ?? 'Chưa có',
+                    valueColor: expiryColor,
                     isDark: isDark,
                   ),
                 ],
               ),
+            ),
+            // Arrow
+            Icon(
+              Icons.chevron_right,
+              color: isDark ? Colors.grey[500] : Colors.grey[400],
             ),
           ],
         ),
@@ -345,59 +352,36 @@ class _ListPantryViewState extends State<ListPantryView> {
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[400] : Colors.grey[500],
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[500] : Colors.grey[500],
               ),
-              Text(
-                value.isNotEmpty ? value : 'Chưa có',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: valueColor,
-                ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: valueColor,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
-    );
-  }
-
-  Widget _buildPlaceholderImage(bool isDark) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[700] : Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        Icons.restaurant,
-        size: 32,
-        color: isDark ? Colors.grey[500] : Colors.grey[400],
-      ),
     );
   }
 
   Widget _buildFooter(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-          ),
-        ),
-      ),
+      color: isDark
+          ? PantryConstants.backgroundDark
+          : PantryConstants.backgroundColor,
     );
   }
 }

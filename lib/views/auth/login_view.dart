@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fridge_to_fork_assistant/views/auth/register_view.dart';
+import 'package:fridge_to_fork_assistant/views/home_view.dart';
 import 'package:fridge_to_fork_assistant/services/auth_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -78,19 +79,41 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> login() async {
+    debugPrint('=== LOGIN BUTTON PRESSED ===');
+
     // Validate form first
     if (!_formKey.currentState!.validate()) {
+      debugPrint('Form validation failed');
       return;
     }
+    debugPrint('Form validation passed');
 
     setState(() => _isLoading = true);
 
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    debugPrint('Email: $email');
+    debugPrint('Password length: ${password.length}');
 
     try {
-      await authService.signInWithEmailPassword(email, password);
+      debugPrint('Calling authService.signInWithEmailPassword...');
+      final response = await authService.signInWithEmailPassword(
+        email,
+        password,
+      );
+      debugPrint('Login response received!');
+      debugPrint('User: ${response.user?.email}');
+      debugPrint('Session: ${response.session != null ? "exists" : "null"}');
+
+      // Navigate to HomeView after successful login
+      if (response.session != null && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeView()),
+          (route) => false,
+        );
+      }
     } catch (e) {
+      debugPrint('Login error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
