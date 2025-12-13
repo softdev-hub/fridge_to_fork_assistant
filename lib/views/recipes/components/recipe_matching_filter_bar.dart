@@ -11,35 +11,32 @@ class RecipeMatchingFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildFilterChip(
-                label: 'Dưới 20 phút',
-                icon: Icons.schedule,
-                isSelected: selectedFilters.contains('time'),
-              ),
-              _buildFilterChip(
-                label: 'Bữa tối',
-                icon: Icons.restaurant,
-                isSelected: selectedFilters.contains('meal'),
-              ),
-              _buildFilterChip(
-                label: 'Ẩm thực Á',
-                icon: Icons.public,
-                isSelected: selectedFilters.contains('cuisine'),
-              ),
-            ],
+    // One-row scrollable bar; button first; scrolls if overflow.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterButton(context),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: 'Dưới 20 phút',
+            icon: Icons.schedule,
+            isSelected: selectedFilters.contains('time'),
           ),
-        ),
-        const SizedBox(width: 8),
-        _buildFilterButton(context),
-      ],
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: 'Bữa tối',
+            icon: Icons.restaurant,
+            isSelected: selectedFilters.contains('meal'),
+          ),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: 'Ẩm thực Á',
+            icon: Icons.public,
+            isSelected: selectedFilters.contains('cuisine'),
+          ),
+        ],
+      ),
     );
   }
 

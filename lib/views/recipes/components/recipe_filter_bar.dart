@@ -8,17 +8,18 @@ class RecipeFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // One-row scrollable bar; button goes first; scrolls if overflow.
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
+          _buildFilterButton(context),
+          const SizedBox(width: 8),
           _buildFilterChip(label: 'Thời gian', icon: Icons.schedule),
-          const SizedBox(width: 3),
+          const SizedBox(width: 8),
           _buildFilterChip(label: 'Bữa ăn', icon: Icons.restaurant),
-          const SizedBox(width: 3),
+          const SizedBox(width: 8),
           _buildFilterChip(label: 'Ẩm thực', icon: Icons.public),
-          const SizedBox(width: 3),
-          _buildFilterButton(),
         ],
       ),
     );
@@ -30,7 +31,7 @@ class RecipeFilterBar extends StatelessWidget {
         // TODO: handle filter change
       },
       child: Container(
-        height: 32,
+        height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: const Color(0xFFE5E7EB),
@@ -44,7 +45,7 @@ class RecipeFilterBar extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF6B7280),
               ),
@@ -55,21 +56,17 @@ class RecipeFilterBar extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterButton() {
-    return Builder(
-      builder: (context) => GestureDetector(
-        onTap: () {
-          RecipeFiltersDefaultView.show(context);
-        },
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE5E7EB),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.tune, size: 18, color: Color(0xFF6B7280)),
+  Widget _buildFilterButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => RecipeFiltersDefaultView.show(context),
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5E7EB),
+          borderRadius: BorderRadius.circular(17),
         ),
+        child: const Icon(Icons.tune, size: 18, color: Color(0xFF6B7280)),
       ),
     );
   }
