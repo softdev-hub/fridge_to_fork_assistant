@@ -3,6 +3,8 @@ import '../common/bottomNavigation.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
 import 'components/missing_ingredients.dart';
+import '../recipes/components/recipe_card_list.dart';
+import '../recipes/recipe_detail_view.dart';
 
 class DayDetailView extends StatefulWidget {
   final DayPlan dayPlan;
@@ -105,13 +107,39 @@ class _DayDetailViewState extends State<DayDetailView> {
 
   Widget _buildMealCard(MealType mealType) {
     final mealSlot = widget.dayPlan.slots[mealType]!;
-    return DayDetailMealCard(
+    final bool goToDetail =
+        mealType == MealType.breakfast && mealSlot.meal != null;
+
+    final card = DayDetailMealCard(
       mealType: mealType,
       meal: mealSlot.meal,
-      onTap: () {
-        // TODO: Handle meal tap
-      },
+      onTap: goToDetail ? () => _openRecipeDetail(mealSlot.meal!) : null,
     );
+
+    if (!goToDetail) return card;
+    return GestureDetector(
+      onTap: () => _openRecipeDetail(mealSlot.meal!),
+      child: card,
+    );
+  }
+
+  void _openRecipeDetail(Meal meal) {
+    final recipe = Recipe(
+      name: meal.name,
+      timeLabel: '25 phút',
+      difficulty: RecipeDifficulty.medium,
+      mealTime: RecipeMealTime.breakfast,
+      matchType: MatchType.full,
+      availableIngredients: 5,
+      totalIngredients: 8,
+      missingCount: 3,
+      expiringCount: null,
+      isExpiring: false,
+    );
+
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => RecipeDetailView(recipe: recipe)));
   }
 
   String _getDayName(int weekday) {
