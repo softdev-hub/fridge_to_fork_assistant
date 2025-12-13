@@ -111,7 +111,6 @@ class _PantryViewState extends State<PantryView>
       ),
     );
   }
-
   Widget _buildHeader(bool isDark) {
     return ClipRRect(
       child: BackdropFilter(
