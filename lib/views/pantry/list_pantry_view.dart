@@ -180,15 +180,6 @@ class _ListPantryViewState extends State<ListPantryView> {
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: _items.isNotEmpty ? _deleteAllItems : null,
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: _items.isNotEmpty
-                      ? (isDark ? Colors.red[300] : Colors.red[400])
-                      : Colors.grey,
-                ),
-              ),
             ],
           ),
         ),

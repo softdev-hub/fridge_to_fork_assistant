@@ -159,7 +159,14 @@ class PantryItem {
   /// Get days until expiry (negative if expired)
   int? get daysUntilExpiry {
     if (expiryDate == null) return null;
-    return expiryDate!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(
+      expiryDate!.year,
+      expiryDate!.month,
+      expiryDate!.day,
+    );
+    return targetDate.difference(today).inDays;
   }
 
   @override
