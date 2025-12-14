@@ -14,7 +14,6 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final authService = AuthService();
 
-  // form key for validation
   final _formKey = GlobalKey<FormState>();
 
   // text controllers
@@ -65,7 +64,7 @@ class _LoginViewState extends State<LoginView> {
     }
     if (errorStr.contains('too many requests') ||
         errorStr.contains('rate limit')) {
-      return 'Quá nhiều lần thử. Vui lòng đợi một lát';
+      return 'Thử quá nhiều lần. Vui lòng đợi một lát';
     }
     if (errorStr.contains('network') ||
         errorStr.contains('connection') ||
