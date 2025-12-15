@@ -145,7 +145,14 @@ class PantryItem {
   /// Check if the pantry item is expired
   bool get isExpired {
     if (expiryDate == null) return false;
-    return DateTime.now().isAfter(expiryDate!);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(
+      expiryDate!.year,
+      expiryDate!.month,
+      expiryDate!.day,
+    );
+    return today.isAfter(expiry);
   }
 
   /// Check if the pantry item is expiring soon (within 3 days)
@@ -159,7 +166,14 @@ class PantryItem {
   /// Get days until expiry (negative if expired)
   int? get daysUntilExpiry {
     if (expiryDate == null) return null;
-    return expiryDate!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(
+      expiryDate!.year,
+      expiryDate!.month,
+      expiryDate!.day,
+    );
+    return expiry.difference(today).inDays;
   }
 
   @override
