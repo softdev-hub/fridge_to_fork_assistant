@@ -5,6 +5,7 @@ import '../../models/pantry_item.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
 import 'add_pantry_view.dart';
 import 'list_pantry_view.dart';
+import 'scan_receipt_view.dart';
 import 'components/pantry_constants.dart';
 import 'components/pantry_placeholder_image.dart';
 
@@ -111,14 +112,18 @@ class _PantryViewState extends State<PantryView>
                 },
               ),
               const SizedBox(height: 16),
-              // Scan receipt button
               _buildScanOptionButton(
                 icon: Icons.receipt_long,
                 label: 'Quét hóa đơn',
                 isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement receipt scanner
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ScanReceiptView()),
+                  ).then((result) {
+                    if (result == true) _loadData();
+                  });
                 },
               ),
             ],

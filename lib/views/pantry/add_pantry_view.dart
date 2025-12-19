@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/enums.dart';
 import '../../models/pantry_item.dart';
@@ -13,7 +15,22 @@ import 'components/pantry_date_field.dart';
 import 'components/pantry_input_styles.dart';
 
 class AddPantryView extends StatefulWidget {
-  const AddPantryView({super.key});
+  final String? initialName;
+  final double? initialQuantity;
+  final UnitEnum? initialUnit;
+  final IngredientCategoryEnum? initialCategory;
+  final File? initialImage;
+  final DateTime? initialPurchaseDate;
+
+  const AddPantryView({
+    super.key,
+    this.initialName,
+    this.initialQuantity,
+    this.initialUnit,
+    this.initialCategory,
+    this.initialImage,
+    this.initialPurchaseDate,
+  });
 
   @override
   State<AddPantryView> createState() => _AddPantryViewState();
@@ -33,10 +50,31 @@ class _AddPantryViewState extends State<AddPantryView> {
   DateTime? _purchaseDate;
   DateTime? _expiryDate;
   bool _isLoading = false;
+  File? _capturedImage;
 
   // Error states for inline validation
   String? _purchaseDateError;
   String? _expiryDateError;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with pre-filled values if provided
+    if (widget.initialName != null) {
+      _nameController.text = widget.initialName!;
+    }
+    if (widget.initialQuantity != null) {
+      // Format quantity nicely (remove .0 for whole numbers)
+      final qty = widget.initialQuantity!;
+      _quantityController.text = qty == qty.roundToDouble()
+          ? qty.toInt().toString()
+          : qty.toString();
+    }
+    _selectedUnit = widget.initialUnit;
+    _selectedCategory = widget.initialCategory;
+    _purchaseDate = widget.initialPurchaseDate;
+    _capturedImage = widget.initialImage;
+  }
 
   @override
   void dispose() {
@@ -59,6 +97,54 @@ class _AddPantryViewState extends State<AddPantryView> {
           _expiryDate = picked;
         }
       });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    
+    // Show bottom sheet to choose camera or gallery
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Chụp ảnh'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Chọn từ thư viện'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    if (source == null) return;
+    
+    try {
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _capturedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi chọn ảnh: $e')),
+        );
+      }
     }
   }
 
@@ -228,9 +314,7 @@ class _AddPantryViewState extends State<AddPantryView> {
       children: [
         // Image upload box
         GestureDetector(
-          onTap: () {
-            // TODO: Implement image picker
-          },
+          onTap: _pickImage,
           child: Container(
             width: 96,
             height: 96,
@@ -243,28 +327,33 @@ class _AddPantryViewState extends State<AddPantryView> {
                 style: BorderStyle.solid,
               ),
             ),
-            child: CustomPaint(
-              painter: DashedBorderPainter(
-                color: isDark ? Colors.grey[600]! : Colors.grey[400]!,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_a_photo_outlined,
-                    color: isDark ? Colors.grey[400] : Colors.grey[500],
-                    size: 28,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Ảnh',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[400] : Colors.grey[500],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(PantryConstants.borderRadius - 2),
+              child: _capturedImage != null
+                  ? Image.file(
+                      _capturedImage!,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_outlined,
+                          color: isDark ? Colors.grey[400] : Colors.grey[500],
+                          size: 28,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Ảnh',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.grey[500],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
