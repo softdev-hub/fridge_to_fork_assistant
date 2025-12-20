@@ -20,60 +20,60 @@ class RecipeMatchingView extends StatelessWidget {
       ),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(64),
-        child: Container(
+                    child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
               bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-            ),
+              ),
           ),
-          child: SafeArea(
-            bottom: false,
+      child: SafeArea(
+        bottom: false,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Positioned(
-                    left: 0,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        size: 24,
-                        color: Color(0xFF1F2937),
-                      ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              left: 0,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  size: 24,
+                  color: Color(0xFF1F2937),
+                ),
                       onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ),
                   const Center(
                     child: Text(
-                      'Gợi ý hôm nay',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F2937),
+              'Gợi ý hôm nay',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1F2937),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.more_vert,
-                        size: 24,
-                        color: Color(0xFF6B7280),
-                      ),
-                      onPressed: () {
-                        // TODO: open settings
-                      },
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ),
-                ],
               ),
+            ),
+            Positioned(
+              right: 0,
+              child: IconButton(
+                icon: const Icon(
+                        Icons.more_vert,
+                  size: 24,
+                  color: Color(0xFF6B7280),
+                ),
+                onPressed: () {
+                  // TODO: open settings
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          ],
+        ),
             ),
           ),
         ),

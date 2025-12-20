@@ -10,28 +10,28 @@ class RecipeFAB extends StatelessWidget {
     return Center(
       child: Material(
         color: const Color(0xFF4CAF50),
-        borderRadius: BorderRadius.circular(28),
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(22),
+        elevation: 3,
+        shadowColor: Colors.black.withOpacity(0.08),
         child: InkWell(
           onTap: () {
             // TODO: refresh recipe suggestions
           },
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(22),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            constraints: const BoxConstraints(minWidth: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: const BoxConstraints(minWidth: 120),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
-                Icon(Icons.refresh, size: 24, color: Colors.white),
-                SizedBox(width: 12),
+                Icon(Icons.refresh, size: 20, color: Colors.white),
+                SizedBox(width: 8),
                 Text(
                   'Gợi ý lại',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),

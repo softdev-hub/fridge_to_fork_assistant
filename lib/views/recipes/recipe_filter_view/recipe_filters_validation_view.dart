@@ -373,19 +373,22 @@ class _RecipeFiltersValidationViewState
   }
 
   Widget _clearButton() {
-    return SizedBox(
-      height: 45,
-      child: OutlinedButton(
-        onPressed: _onClear,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: _primaryRed,
-          side: const BorderSide(color: _primaryRed),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
-        child: const Text(
-          'Xóa bộ lọc',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    return Expanded(
+      child: SizedBox(
+        height: 45,
+        child: OutlinedButton(
+          onPressed: _onClear,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _primaryRed,
+            side: const BorderSide(color: _primaryRed),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+          ),
+          child: const Text(
+            'Xóa bộ lọc',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );
@@ -400,10 +403,9 @@ class _RecipeFiltersValidationViewState
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF4CAF50),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(28),
             ),
             elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
           ),
           child: const Text(
             'Áp dụng',

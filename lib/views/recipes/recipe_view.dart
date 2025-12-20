@@ -21,7 +21,7 @@ class RecipeView extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -59,7 +59,7 @@ class RecipeView extends StatelessWidget {
       body: Stack(
         children: [
           const SafeArea(top: false, bottom: false, child: RecipeListScreen()),
-          Positioned(right: 24, bottom: 24, child: const RecipeFAB()),
+          Positioned(right: 16, bottom: 16, child: const RecipeFAB()),
         ],
       ),
     );
