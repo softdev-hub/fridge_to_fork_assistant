@@ -57,7 +57,7 @@ class RecipeCardItem extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildThumbnail(),
+                _buildThumbnailWithPriority(),
                 const SizedBox(width: 12),
                 Expanded(child: _buildBody()),
               ],
@@ -68,16 +68,51 @@ class RecipeCardItem extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnail() {
-    return Container(
-      width: 96,
-      height: 96,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F5F7),
-        border: Border.all(color: const Color(0xFFEEF0F4)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Icon(Icons.image, size: 48, color: Color(0xFF9CA3AF)),
+  Widget _buildThumbnailWithPriority() {
+    final bool showPriority =
+        (recipe.expiringCount ?? 0) > 0 || recipe.isExpiring;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 96,
+          height: 96,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFFF4F5F7),
+            border: Border.all(color: const Color(0xFFEEF0F4)),
+          ),
+          child: ClipOval(
+            child: Container(
+              color: const Color(0xFFF4F5F7),
+              child: const Icon(
+                Icons.image,
+                size: 48,
+                color: Color(0xFF9CA3AF),
+              ),
+            ),
+          ),
+        ),
+        if (showPriority) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFDE68A),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'Ưu tiên dùng sớm',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF92400E),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -110,7 +145,11 @@ class RecipeCardItem extends StatelessWidget {
           spacing: 6,
           runSpacing: 6,
           children: [
-            _buildPill(icon: '⏱', label: recipe.timeLabel, type: PillType.time),
+            _buildPill(
+              icon: Icons.schedule,
+              label: recipe.timeLabel,
+              type: PillType.time,
+            ),
             _buildPill(
               icon: _getDifficultyIcon(),
               label: _getDifficultyLabel(),
@@ -135,7 +174,7 @@ class RecipeCardItem extends StatelessWidget {
   }
 
   Widget _buildPill({
-    required String icon,
+    required IconData icon,
     required String label,
     required PillType type,
   }) {
@@ -177,7 +216,7 @@ class RecipeCardItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 11)),
+          Icon(icon, size: 14, color: textColor),
           const SizedBox(width: 6),
           Text(
             label,
@@ -227,7 +266,11 @@ class RecipeCardItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(isFull ? '✅' : '🧩', style: const TextStyle(fontSize: 11)),
+          Icon(
+            isFull ? Icons.check_circle : Icons.check_circle_outline,
+            size: 14,
+            color: isFull ? const Color(0xFF059669) : const Color(0xFF2563EB),
+          ),
           const SizedBox(width: 6),
           Text(
             label,
@@ -253,7 +296,11 @@ class RecipeCardItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🛒', style: TextStyle(fontSize: 11)),
+          const Icon(
+            Icons.shopping_cart_outlined,
+            size: 14,
+            color: Color(0xFF92400E),
+          ),
           const SizedBox(width: 6),
           Text(
             'Thiếu ${recipe.missingCount} nguyên liệu',
@@ -279,11 +326,15 @@ class RecipeCardItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('⚠', style: TextStyle(fontSize: 11)),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 14,
+            color: Color(0xFF92400E),
+          ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              'Dùng ${recipe.expiringCount} NL sắp hết hạn',
+              '${recipe.expiringCount} nguyên liệu sắp hết hạn',
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -298,14 +349,14 @@ class RecipeCardItem extends StatelessWidget {
     );
   }
 
-  String _getDifficultyIcon() {
+  IconData _getDifficultyIcon() {
     switch (recipe.difficulty) {
       case RecipeDifficulty.easy:
-        return '✨';
+        return Icons.emoji_events_outlined;
       case RecipeDifficulty.medium:
-        return '⚡';
+        return Icons.bolt;
       case RecipeDifficulty.hard:
-        return '🔥';
+        return Icons.whatshot;
     }
   }
 
@@ -331,14 +382,14 @@ class RecipeCardItem extends StatelessWidget {
     }
   }
 
-  String _getMealIcon() {
+  IconData _getMealIcon() {
     switch (recipe.mealTime) {
       case RecipeMealTime.breakfast:
-        return '🌅';
+        return Icons.breakfast_dining;
       case RecipeMealTime.lunch:
-        return '🍱';
+        return Icons.lunch_dining;
       case RecipeMealTime.dinner:
-        return '🍽';
+        return Icons.dinner_dining;
     }
   }
 
