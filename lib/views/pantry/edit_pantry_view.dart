@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../controllers/pantry_item_controller.dart';
 import '../../controllers/ingredient_controller.dart';
 import '../../models/pantry_item.dart';
 import '../../models/ingredient.dart';
 import '../../models/enums.dart';
+import '../../services/storage_service.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
 import 'components/pantry_constants.dart';
 import 'components/pantry_header.dart';
@@ -26,6 +29,8 @@ class _EditPantryViewState extends State<EditPantryView> {
   final _formKey = GlobalKey<FormState>();
   final _pantryController = PantryItemController();
   final _ingredientController = IngredientController();
+  final _storageService = StorageService();
+  final _imagePicker = ImagePicker();
 
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
@@ -35,6 +40,8 @@ class _EditPantryViewState extends State<EditPantryView> {
   DateTime? _purchaseDate;
   DateTime? _expiryDate;
   bool _isLoading = false;
+  File? _newImage; // Ảnh mới được chọn
+  String? _currentImageUrl; // URL ảnh hiện tại
 
   // Error states for inline validation
   String? _purchaseDateError;
@@ -57,6 +64,7 @@ class _EditPantryViewState extends State<EditPantryView> {
     _selectedUnit = widget.item.unit;
     _purchaseDate = widget.item.purchaseDate;
     _expiryDate = widget.item.expiryDate;
+    _currentImageUrl = widget.item.imageUrl;
   }
 
   @override
@@ -82,6 +90,51 @@ class _EditPantryViewState extends State<EditPantryView> {
           _expiryDate = picked;
         }
       });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Chụp ảnh'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Chọn từ thư viện'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _newImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi chọn ảnh: $e')),
+        );
+      }
     }
   }
 
@@ -133,6 +186,15 @@ class _EditPantryViewState extends State<EditPantryView> {
         await _ingredientController.updateIngredient(updatedIngredient);
       }
 
+      // Upload ảnh mới nếu có
+      String? newImageUrl = _currentImageUrl;
+      if (_newImage != null) {
+        newImageUrl = await _storageService.replacePantryImage(
+          _newImage!,
+          _currentImageUrl,
+        );
+      }
+
       // Update pantry item
       final updatedItem = widget.item.copyWith(
         quantity:
@@ -141,6 +203,7 @@ class _EditPantryViewState extends State<EditPantryView> {
         purchaseDate: _purchaseDate,
         expiryDate: _expiryDate,
         note: _noteController.text.isNotEmpty ? _noteController.text : null,
+        imageUrl: newImageUrl,
       );
 
       await _pantryController.updatePantryItem(updatedItem);
@@ -232,24 +295,31 @@ class _EditPantryViewState extends State<EditPantryView> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
-            child: widget.item.imageUrl != null
-                ? Image.network(
-                    widget.item.imageUrl!,
+            child: _newImage != null
+                // Hiển thị ảnh mới nếu có
+                ? Image.file(
+                    _newImage!,
                     width: 128,
                     height: 128,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        PantryPlaceholderImage.medium(),
                   )
-                : PantryPlaceholderImage.medium(),
+                : _currentImageUrl != null
+                    // Hiển thị ảnh từ URL nếu có
+                    ? Image.network(
+                        _currentImageUrl!,
+                        width: 128,
+                        height: 128,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            PantryPlaceholderImage.medium(),
+                      )
+                    : PantryPlaceholderImage.medium(),
           ),
           Positioned(
             bottom: -8,
             right: -8,
             child: GestureDetector(
-              onTap: () {
-                // TODO: Implement image picker
-              },
+              onTap: _pickImage,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(

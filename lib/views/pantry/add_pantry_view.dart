@@ -7,6 +7,7 @@ import '../../models/enums.dart';
 import '../../models/pantry_item.dart';
 import '../../controllers/ingredient_controller.dart';
 import '../../controllers/pantry_item_controller.dart';
+import '../../services/storage_service.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
 import 'components/pantry_constants.dart';
 import 'components/pantry_header.dart';
@@ -40,6 +41,7 @@ class _AddPantryViewState extends State<AddPantryView> {
   final _formKey = GlobalKey<FormState>();
   final _ingredientController = IngredientController();
   final _pantryItemController = PantryItemController();
+  final _storageService = StorageService();
 
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
@@ -102,7 +104,7 @@ class _AddPantryViewState extends State<AddPantryView> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    
+
     // Show bottom sheet to choose camera or gallery
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -123,9 +125,9 @@ class _AddPantryViewState extends State<AddPantryView> {
         ),
       ),
     );
-    
+
     if (source == null) return;
-    
+
     try {
       final XFile? image = await picker.pickImage(
         source: source,
@@ -133,7 +135,7 @@ class _AddPantryViewState extends State<AddPantryView> {
         maxHeight: 1024,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         setState(() {
           _capturedImage = File(image.path);
@@ -141,9 +143,9 @@ class _AddPantryViewState extends State<AddPantryView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi chọn ảnh: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi chọn ảnh: $e')));
       }
     }
   }
@@ -197,6 +199,12 @@ class _AddPantryViewState extends State<AddPantryView> {
         throw Exception('Người dùng chưa đăng nhập');
       }
 
+      // Upload ảnh nếu có
+      String? imageUrl;
+      if (_capturedImage != null) {
+        imageUrl = await _storageService.uploadPantryImage(_capturedImage!);
+      }
+
       final pantryItem = PantryItem(
         profileId: userId,
         ingredientId: ingredient.ingredientId!,
@@ -205,6 +213,7 @@ class _AddPantryViewState extends State<AddPantryView> {
         purchaseDate: _purchaseDate,
         expiryDate: _expiryDate,
         note: _noteController.text.isNotEmpty ? _noteController.text : null,
+        imageUrl: imageUrl,
       );
 
       await _pantryItemController.createPantryItem(pantryItem);
@@ -328,7 +337,9 @@ class _AddPantryViewState extends State<AddPantryView> {
               ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(PantryConstants.borderRadius - 2),
+              borderRadius: BorderRadius.circular(
+                PantryConstants.borderRadius - 2,
+              ),
               child: _capturedImage != null
                   ? Image.file(
                       _capturedImage!,
