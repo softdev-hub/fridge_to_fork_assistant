@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../common/bottomNavigation.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
 import 'components/missing_ingredients.dart';
@@ -54,12 +53,6 @@ class _DayDetailViewState extends State<DayDetailView> {
           child: Column(children: [Expanded(child: _buildDayPlanContent())]),
         ),
       ),
-      bottomNavigationBar: AppBottomNavigation(
-        currentIndex: 3,
-        onTap: (index) {
-          // Handle bottom navigation tap
-        },
-      ),
     );
   }
 
@@ -78,8 +71,6 @@ class _DayDetailViewState extends State<DayDetailView> {
           const SizedBox(height: 12),
           _buildMealCard(MealType.lunch),
           const SizedBox(height: 12),
-          _buildMealCard(MealType.dinner),
-          const SizedBox(height: 24),
           _buildMealCard(MealType.dinner),
           const SizedBox(height: 24),
           // Missing ingredients section
@@ -107,19 +98,39 @@ class _DayDetailViewState extends State<DayDetailView> {
 
   Widget _buildMealCard(MealType mealType) {
     final mealSlot = widget.dayPlan.slots[mealType]!;
-    final bool goToDetail =
-        mealType == MealType.breakfast && mealSlot.meal != null;
 
-    final card = DayDetailMealCard(
-      mealType: mealType,
-      meal: mealSlot.meal,
-      onTap: goToDetail ? () => _openRecipeDetail(mealSlot.meal!) : null,
-    );
+    if (mealSlot.meals.isEmpty) {
+      // Show empty card when no meals
+      return DayDetailMealCard(mealType: mealType, meal: null, onTap: null);
+    }
 
-    if (!goToDetail) return card;
-    return GestureDetector(
-      onTap: () => _openRecipeDetail(mealSlot.meal!),
-      child: card,
+    // Show all meals in this slot
+    return Column(
+      children: List.generate(mealSlot.meals.length, (index) {
+        final meal = mealSlot.meals[index];
+        final bool goToDetail = mealType == MealType.breakfast;
+
+        final card = DayDetailMealCard(
+          mealType: index == 0
+              ? mealType
+              : null, // Only show meal type label for first card
+          meal: meal,
+          onTap: goToDetail ? () => _openRecipeDetail(meal) : null,
+        );
+
+        return Column(
+          children: [
+            if (index > 0)
+              const SizedBox(height: 8), // Space between multiple meals
+            goToDetail
+                ? GestureDetector(
+                    onTap: () => _openRecipeDetail(meal),
+                    child: card,
+                  )
+                : card,
+          ],
+        );
+      }),
     );
   }
 

@@ -14,19 +14,28 @@ extension MealTypeExt on MealType {
 }
 
 class Meal {
+  /// ID recipe trong bảng `recipes` (có thể null với dữ liệu dummy).
+  final int? recipeId;
   final String name;
   final String imageUrl;
 
-  const Meal({required this.name, required this.imageUrl});
+  const Meal({this.recipeId, required this.name, required this.imageUrl});
 }
 
+/// Một ô bữa ăn trong ngày.
+///
+/// Hỗ trợ chứa nhiều món (nhiều công thức) trong cùng một slot.
 class MealSlot {
   final MealType type;
-  final Meal? meal;
+  final List<Meal> meals;
 
-  const MealSlot({required this.type, this.meal});
+  const MealSlot({required this.type, this.meals = const []});
 
-  bool get isEmpty => meal == null;
+  bool get isEmpty => meals.isEmpty;
+
+  MealSlot addMeal(Meal meal) {
+    return MealSlot(type: type, meals: [...meals, meal]);
+  }
 }
 
 class DayPlan {
@@ -39,6 +48,18 @@ class DayPlan {
     required this.dayOfMonth,
     required this.slots,
   });
+
+  DayPlan copyWith({
+    String? weekdayLabel,
+    int? dayOfMonth,
+    Map<MealType, MealSlot>? slots,
+  }) {
+    return DayPlan(
+      weekdayLabel: weekdayLabel ?? this.weekdayLabel,
+      dayOfMonth: dayOfMonth ?? this.dayOfMonth,
+      slots: slots ?? this.slots,
+    );
+  }
 }
 
 class WeekPlan {
@@ -51,6 +72,18 @@ class WeekPlan {
     required this.days,
     this.selectedDayIndex = 0,
   });
+
+  WeekPlan copyWith({
+    String? label,
+    List<DayPlan>? days,
+    int? selectedDayIndex,
+  }) {
+    return WeekPlan(
+      label: label ?? this.label,
+      days: days ?? this.days,
+      selectedDayIndex: selectedDayIndex ?? this.selectedDayIndex,
+    );
+  }
 }
 
 /// Dummy data cho tuần hiện tại (Tuần 2: 13 - 19/11/2025)
@@ -64,11 +97,13 @@ final WeekPlan dummyWeekPlan = WeekPlan(
       slots: {
         MealType.breakfast: MealSlot(
           type: MealType.breakfast,
-          meal: Meal(
-            name: 'Phở bò',
-            imageUrl:
-                'https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg',
-          ),
+          meals: [
+            Meal(
+              name: 'Phở bò',
+              imageUrl:
+                  'https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg',
+            ),
+          ],
         ),
         MealType.lunch: MealSlot(type: MealType.lunch),
         MealType.dinner: MealSlot(type: MealType.dinner),
@@ -81,11 +116,13 @@ final WeekPlan dummyWeekPlan = WeekPlan(
         MealType.breakfast: MealSlot(type: MealType.breakfast),
         MealType.lunch: MealSlot(
           type: MealType.lunch,
-          meal: Meal(
-            name: 'Mì Ý sốt thịt',
-            imageUrl:
-                'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg',
-          ),
+          meals: [
+            Meal(
+              name: 'Mì Ý sốt thịt',
+              imageUrl:
+                  'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg',
+            ),
+          ],
         ),
         MealType.dinner: MealSlot(type: MealType.dinner),
       },
@@ -96,27 +133,33 @@ final WeekPlan dummyWeekPlan = WeekPlan(
       slots: {
         MealType.breakfast: MealSlot(
           type: MealType.breakfast,
-          meal: Meal(
-            name: 'Phở Bò Hà Nội',
-            imageUrl:
-                'https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg',
-          ),
+          meals: [
+            Meal(
+              name: 'Phở Bò Hà Nội',
+              imageUrl:
+                  'https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg',
+            ),
+          ],
         ),
         MealType.lunch: MealSlot(
           type: MealType.lunch,
-          meal: Meal(
-            name: 'Gà nướng mật ong',
-            imageUrl:
-                'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg',
-          ),
+          meals: [
+            Meal(
+              name: 'Gà nướng mật ong',
+              imageUrl:
+                  'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg',
+            ),
+          ],
         ),
         MealType.dinner: MealSlot(
           type: MealType.dinner,
-          meal: Meal(
-            name: 'Vịt tiềm',
-            imageUrl:
-                'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
-          ),
+          meals: [
+            Meal(
+              name: 'Vịt tiềm',
+              imageUrl:
+                  'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg',
+            ),
+          ],
         ),
       },
     ),

@@ -3,15 +3,19 @@ import 'plan_models.dart';
 
 class MealCard extends StatelessWidget {
   final MealType mealType;
-  final Meal? meal;
+  final List<Meal> meals; // có thể rỗng hoặc nhiều món
   final VoidCallback? onTap;
 
-  const MealCard({Key? key, required this.mealType, this.meal, this.onTap})
-    : super(key: key);
+  const MealCard({
+    Key? key,
+    required this.mealType,
+    this.meals = const [],
+    this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final bool isEmpty = meal == null;
+    final bool isEmpty = meals.isEmpty;
 
     return GestureDetector(
       onTap: onTap,
@@ -75,6 +79,9 @@ class MealCard extends StatelessWidget {
   }
 
   Widget _buildMealContent() {
+    final Meal firstMeal = meals.first;
+    final int extraCount = meals.length - 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -85,7 +92,7 @@ class MealCard extends StatelessWidget {
             child: Container(
               width: double.infinity,
               child: Image.network(
-                meal!.imageUrl,
+                firstMeal.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: const Color(0xFFF1F5F9),
@@ -99,7 +106,7 @@ class MealCard extends StatelessWidget {
         Expanded(
           flex: 1,
           child: Text(
-            meal!.name,
+            extraCount > 0 ? '${firstMeal.name} +$extraCount' : firstMeal.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

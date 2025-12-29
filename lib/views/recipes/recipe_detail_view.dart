@@ -1,16 +1,77 @@
 import 'package:flutter/material.dart';
 import 'components/recipe_card_list.dart';
 import '../plans/plan_view.dart';
+import '../../models/recipe_ingredient.dart';
+import '../../models/ingredient.dart';
+import '../../models/enums.dart';
 
-class RecipeDetailView extends StatelessWidget {
+class RecipeDetailView extends StatefulWidget {
   final Recipe recipe;
 
   const RecipeDetailView({super.key, required this.recipe});
 
   @override
+  State<RecipeDetailView> createState() => _RecipeDetailViewState();
+}
+
+class _RecipeDetailViewState extends State<RecipeDetailView> {
+  List<RecipeIngredient> _missingIngredients = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissingIngredients();
+  }
+
+  Future<void> _loadMissingIngredients() async {
+    // Tạo dummy missing ingredients dựa trên missingCount của recipe
+    if (widget.recipe.missingCount != null && widget.recipe.missingCount! > 0) {
+      _missingIngredients = _createDummyMissingIngredients(
+        widget.recipe.missingCount!,
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  // Tạo dummy missing ingredients cho testing
+  List<RecipeIngredient> _createDummyMissingIngredients(int count) {
+    final dummyIngredients = [
+      'Hành tây',
+      'Tỏi',
+      'Gừng',
+      'Ớt',
+      'Nước mắm',
+      'Đường',
+      'Muối',
+      'Tiêu',
+      'Rau thơm',
+      'Chanh',
+    ];
+
+    return List.generate(
+      count,
+      (index) => RecipeIngredient(
+        recipeId: widget.recipe.recipeId ?? 0,
+        ingredientId: index + 1,
+        quantity: 1.0 + index,
+        unit: UnitEnum.g,
+        ingredient: Ingredient(
+          ingredientId: index + 1,
+          name: dummyIngredients[index % dummyIngredients.length],
+          category: 'spices',
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final availableList = _availableIngredients();
-    final missingList = _missingIngredients();
+    final missingList = _getMissingIngredientsDisplay();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -47,7 +108,7 @@ class RecipeDetailView extends StatelessWidget {
                   _heroImage(),
                   const SizedBox(height: 16),
                   Text(
-                    recipe.name,
+                    widget.recipe.name,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -96,6 +157,24 @@ class RecipeDetailView extends StatelessWidget {
                       icon: Icons.add_circle,
                       iconColor: const Color(0xFFF59E0B),
                       showAddButton: true,
+                    )
+                  else if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'Không có nguyên liệu nào cần mua thêm!',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -219,7 +298,7 @@ class RecipeDetailView extends StatelessWidget {
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _metaItem(Icons.access_time, recipe.timeLabel),
+        _metaItem(Icons.access_time, widget.recipe.timeLabel),
         _separator(),
         _metaItem(Icons.people_alt, '1 khẩu phần'),
         _separator(),
@@ -389,7 +468,7 @@ class RecipeDetailView extends StatelessWidget {
   }
 
   String _mealLabel() {
-    switch (recipe.mealTime) {
+    switch (widget.recipe.mealTime) {
       case RecipeMealTime.breakfast:
         return 'Bữa sáng';
       case RecipeMealTime.lunch:
@@ -400,7 +479,7 @@ class RecipeDetailView extends StatelessWidget {
   }
 
   String _difficultyLabel() {
-    switch (recipe.difficulty) {
+    switch (widget.recipe.difficulty) {
       case RecipeDifficulty.easy:
         return 'Dễ';
       case RecipeDifficulty.medium:
@@ -415,26 +494,20 @@ class RecipeDetailView extends StatelessWidget {
     return 'Ẩm thực Á';
   }
 
-  String _matchSummary() {
-    final available = recipe.availableIngredients;
-    final total = recipe.totalIngredients;
-    if (recipe.matchType == MatchType.full) {
-      return 'Đủ $available/$total nguyên liệu';
-    }
-    return 'Có $available/$total nguyên liệu';
-  }
-
   List<String> _availableIngredients() {
-    final count = recipe.availableIngredients;
+    final count = widget.recipe.availableIngredients;
     if (count <= 0) return [];
     return List.generate(count, (i) => 'Nguyên liệu có sẵn #${i + 1}');
   }
 
-  List<String> _missingIngredients() {
-    final inferredMissing =
-        (recipe.totalIngredients - recipe.availableIngredients).clamp(0, 99);
-    final count = recipe.missingCount ?? inferredMissing;
-    if (count <= 0) return [];
-    return List.generate(count, (i) => 'Nguyên liệu cần mua #${i + 1}');
+  List<String> _getMissingIngredientsDisplay() {
+    if (_missingIngredients.isEmpty) return [];
+
+    return _missingIngredients.map((ingredient) {
+      final ingredientName = ingredient.ingredient?.name ?? 'Unknown';
+      final quantity = ingredient.quantity;
+      final unit = ingredient.unit.name;
+      return '$ingredientName ($quantity $unit)';
+    }).toList();
   }
 }

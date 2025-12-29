@@ -17,53 +17,55 @@ class RecipeCardItem extends StatelessWidget {
           MaterialPageRoute(builder: (_) => RecipeDetailView(recipe: recipe)),
         );
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: recipe.isExpiring ? const Color(0xFFFEFBF5) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: recipe.isExpiring
-                ? const Color(0xFFF59E0B).withOpacity(0.8)
-                : const Color(0xFFEEF0F4),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF101828).withOpacity(0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
+      child: _buildCardContent(context),
+    );
+  }
+
+  // Separate method for card content to avoid duplication
+  Widget _buildCardContent(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: recipe.isExpiring ? const Color(0xFFFEFBF5) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: recipe.isExpiring
+              ? const Color(0xFFF59E0B).withOpacity(0.8)
+              : const Color(0xFFEEF0F4),
+          width: 1,
         ),
-        padding: const EdgeInsets.all(12),
-        child: Stack(
-          children: [
-            if (recipe.isExpiring)
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF101828).withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Stack(
+        children: [
+          if (recipe.isExpiring)
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildThumbnailWithPriority(),
-                const SizedBox(width: 12),
-                Expanded(child: _buildBody()),
-              ],
             ),
-          ],
-        ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildThumbnailWithPriority(),
+              const SizedBox(width: 12),
+              Expanded(child: _buildBody()),
+            ],
+          ),
+        ],
       ),
     );
   }
