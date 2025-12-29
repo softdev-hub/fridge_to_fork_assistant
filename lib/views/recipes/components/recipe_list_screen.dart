@@ -93,6 +93,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         .toList();
 
     return RecipeCardModel(
+      recipeId: recipe.recipeId,
       name: recipe.title,
       timeLabel: _timeLabel(recipe.cookingTimeMinutes),
       difficulty: _diff(recipe.difficulty),
@@ -105,6 +106,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       isExpiring: false,
       availableNames: availableNames,
       missingNames: missingNames,
+      instructions: recipe.instructions,
     );
   }
 

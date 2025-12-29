@@ -10,6 +10,7 @@ enum RecipeMealTime { breakfast, lunch, dinner }
 enum MatchType { full, partial }
 
 class RecipeCardModel {
+  final int? recipeId;
   final String name;
   final String timeLabel;
   final RecipeDifficulty difficulty;
@@ -22,8 +23,10 @@ class RecipeCardModel {
   final bool isExpiring;
   final List<String> availableNames;
   final List<String> missingNames;
+  final String? instructions;
 
   RecipeCardModel({
+    this.recipeId,
     required this.name,
     required this.timeLabel,
     required this.difficulty,
@@ -36,6 +39,7 @@ class RecipeCardModel {
     this.isExpiring = false,
     this.availableNames = const [],
     this.missingNames = const [],
+    this.instructions,
   });
 }
 
