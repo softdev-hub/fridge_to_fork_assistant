@@ -87,13 +87,6 @@ class _ProfilePageState extends State<ProfilePage> {
 																		shape: BoxShape.circle,
 																		border: Border.all(color: backgroundLight, width: 2),
 																	),
-																	child: IconButton(
-																		padding: EdgeInsets.zero,
-																		onPressed: () {
-																			// TODO: handle edit avatar
-																		},
-																		icon: const Icon(Icons.edit, color: Colors.white, size: 18),
-																	),
 																),
 															),
 														],

@@ -25,7 +25,7 @@ class PantryItemController {
         .toList();
   }
 
-  /// Get pantry item by ID
+  // Get pantry item by ID
   Future<PantryItem?> getPantryItemById(int pantryItemId) async {
     final response = await _supabase
         .from(_tableName)
