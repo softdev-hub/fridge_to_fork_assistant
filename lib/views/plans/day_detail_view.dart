@@ -124,7 +124,7 @@ class _DayDetailViewState extends State<DayDetailView> {
   }
 
   void _openRecipeDetail(Meal meal) {
-    final recipe = Recipe(
+    final recipe = RecipeCardModel(
       name: meal.name,
       timeLabel: '25 phút',
       difficulty: RecipeDifficulty.medium,

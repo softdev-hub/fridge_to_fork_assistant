@@ -3,7 +3,7 @@ import 'components/recipe_card_list.dart';
 import '../plans/plan_view.dart';
 
 class RecipeDetailView extends StatelessWidget {
-  final Recipe recipe;
+  final RecipeCardModel recipe;
 
   const RecipeDetailView({super.key, required this.recipe});
 
@@ -33,167 +33,174 @@ class RecipeDetailView extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hero
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _heroImage(),
-                  const SizedBox(height: 16),
-                  Text(
-                    recipe.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _metaRow(context),
-                  const SizedBox(height: 8),
-                  _metaRow2(context),
-                ],
-              ),
-            ),
-
-            // Ingredients summary
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Nguyên liệu',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _ingredientGroup(
-                    title: 'Bạn đã có',
-                    titleColor: const Color(0xFF16A34A),
-                    items: availableList.isNotEmpty
-                        ? availableList
-                        : ['Chưa có thông tin nguyên liệu sẵn có'],
-                    icon: Icons.check_circle,
-                    iconColor: const Color(0xFF4CAF50),
-                  ),
-                  const SizedBox(height: 16),
-                  if (missingList.isNotEmpty)
-                    _ingredientGroup(
-                      title: 'Cần mua thêm',
-                      titleColor: const Color(0xFFF59E0B),
-                      items: missingList,
-                      icon: Icons.add_circle,
-                      iconColor: const Color(0xFFF59E0B),
-                      showAddButton: true,
-                    ),
-                ],
-              ),
-            ),
-
-            // Video placeholder
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Video hướng dẫn',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.play_circle_fill,
-                        size: 64,
-                        color: Color(0xFF6B7280),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Không tải lại dữ liệu từ server ở màn chi tiết tĩnh; chỉ giả lập delay nhỏ.
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Hero
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _heroImage(),
+                    const SizedBox(height: 16),
+                    Text(
+                      recipe.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                        height: 1.3,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Video minh họa',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    _metaRow(context),
+                    const SizedBox(height: 8),
+                    _metaRow2(context),
+                  ],
+                ),
               ),
-            ),
 
-            // Steps (static placeholders)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Các bước thực hiện',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
+              // Ingredients summary
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nguyên liệu',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _stepCard(1, 'Chuẩn bị đầy đủ nguyên liệu.'),
-                  _stepCard(2, 'Sơ chế và ướp theo khẩu vị.'),
-                  _stepCard(3, 'Chế biến theo hướng dẫn và thưởng thức.'),
-                ],
+                    const SizedBox(height: 16),
+                    _ingredientGroup(
+                      title: 'Bạn đã có',
+                      titleColor: const Color(0xFF16A34A),
+                      items: availableList.isNotEmpty
+                          ? availableList
+                          : ['Chưa có thông tin nguyên liệu sẵn có'],
+                      icon: Icons.check_circle,
+                      iconColor: const Color(0xFF4CAF50),
+                    ),
+                    const SizedBox(height: 16),
+                    if (missingList.isNotEmpty)
+                      _ingredientGroup(
+                        title: 'Cần mua thêm',
+                        titleColor: const Color(0xFFF59E0B),
+                        items: missingList,
+                        icon: Icons.add_circle,
+                        iconColor: const Color(0xFFF59E0B),
+                        showAddButton: true,
+                      ),
+                  ],
+                ),
               ),
-            ),
 
-            // Actions
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.event, color: Colors.white),
-                  label: const Text(
-                    'Thêm món vào Kế hoạch',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+              // Video placeholder
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Video hướng dẫn',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
                     ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute(builder: (_) => const PlanView()));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    minimumSize: const Size.fromHeight(48),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          size: 64,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Video minh họa',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Steps (static placeholders)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Các bước thực hiện',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _stepCard(1, 'Chuẩn bị đầy đủ nguyên liệu.'),
+                    _stepCard(2, 'Sơ chế và ướp theo khẩu vị.'),
+                    _stepCard(3, 'Chế biến theo hướng dẫn và thưởng thức.'),
+                  ],
+                ),
+              ),
+
+              // Actions
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.event, color: Colors.white),
+                    label: const Text(
+                      'Thêm món vào Kế hoạch',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(
+                        context,
+                      ).push(MaterialPageRoute(builder: (_) => const PlanView()));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      minimumSize: const Size.fromHeight(48),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -415,22 +422,15 @@ class RecipeDetailView extends StatelessWidget {
     return 'Ẩm thực Á';
   }
 
-  String _matchSummary() {
-    final available = recipe.availableIngredients;
-    final total = recipe.totalIngredients;
-    if (recipe.matchType == MatchType.full) {
-      return 'Đủ $available/$total nguyên liệu';
-    }
-    return 'Có $available/$total nguyên liệu';
-  }
-
   List<String> _availableIngredients() {
+    if (recipe.availableNames.isNotEmpty) return recipe.availableNames;
     final count = recipe.availableIngredients;
     if (count <= 0) return [];
     return List.generate(count, (i) => 'Nguyên liệu có sẵn #${i + 1}');
   }
 
   List<String> _missingIngredients() {
+    if (recipe.missingNames.isNotEmpty) return recipe.missingNames;
     final inferredMissing =
         (recipe.totalIngredients - recipe.availableIngredients).clamp(0, 99);
     final count = recipe.missingCount ?? inferredMissing;
