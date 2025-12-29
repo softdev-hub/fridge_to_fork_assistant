@@ -65,7 +65,7 @@ fridge_to_fork_assistant_web/
 
 1. **Clone repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/softdev-hub/fridge_to_fork_assistant/edit/feature/Web-admin
    cd fridge_to_fork_assistant_web
    ```
 
