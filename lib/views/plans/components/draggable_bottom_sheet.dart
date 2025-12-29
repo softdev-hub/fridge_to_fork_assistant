@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:fridge_to_fork_assistant/views/recipes/components/recipe_card_list.dart'; // Import dummyRecipes
 import 'plan_models.dart';
+
+// Dummy danh sách công thức để kéo thả (tách khỏi màn gợi ý món).
+const String _fallbackImage =
+    'https://images.unsplash.com/photo-1548943487-a2e4e43b4858?w=400';
+
+final List<Meal> _dummyPlanRecipes = [
+  Meal(recipeId: 1, name: 'Phở bò Hà Nội', imageUrl: _fallbackImage),
+  Meal(recipeId: 2, name: 'Bún chả Hà Nội', imageUrl: _fallbackImage),
+  Meal(recipeId: 3, name: 'Cơm gà Hội An', imageUrl: _fallbackImage),
+  Meal(recipeId: 4, name: 'Gà nướng mật ong', imageUrl: _fallbackImage),
+  Meal(recipeId: 5, name: 'Mì Ý sốt thịt', imageUrl: _fallbackImage),
+];
 
 class DraggableBottomSheet extends StatefulWidget {
   const DraggableBottomSheet({Key? key, required this.scrollController})
@@ -113,20 +124,14 @@ class _RecipeAddFormState extends State<DraggableBottomSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Sử dụng dummyRecipes từ trang "Gợi ý món"
+              // Danh sách công thức kéo thả (dummy)
               Column(
-                children: List.generate(dummyRecipes.length, (index) {
-                  final recipe = dummyRecipes[index];
-                  final meal = Meal(
-                    recipeId: recipe.recipeId,
-                    name: recipe.name,
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1548943487-a2e4e43b4858?w=400',
-                  );
+                children: List.generate(_dummyPlanRecipes.length, (index) {
+                  final meal = _dummyPlanRecipes[index];
                   return Column(
                     children: [
                       _buildRecipeCard(meal),
-                      if (index < dummyRecipes.length - 1)
+                      if (index < _dummyPlanRecipes.length - 1)
                         const SizedBox(height: 12),
                     ],
                   );

@@ -97,6 +97,7 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
         .toList();
 
     return RecipeCardModel(
+      recipeId: recipe.recipeId,
       name: recipe.title,
       timeLabel: _timeLabel(recipe.cookingTimeMinutes),
       difficulty: _diff(recipe.difficulty),
@@ -109,6 +110,7 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
       isExpiring: false,
       availableNames: availableNames,
       missingNames: missingNames,
+      instructions: recipe.instructions,
     );
   }
 

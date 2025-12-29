@@ -5,7 +5,7 @@ import '../../models/recipe_ingredient.dart';
 import '../../models/ingredient.dart';
 import '../../models/enums.dart';
 
-class RecipeDetailView extends StatelessWidget {
+class RecipeDetailView extends StatefulWidget {
   final RecipeCardModel recipe;
 
   const RecipeDetailView({super.key, required this.recipe});
@@ -15,8 +15,7 @@ class RecipeDetailView extends StatelessWidget {
 }
 
 class _RecipeDetailViewState extends State<RecipeDetailView> {
-  List<RecipeIngredient> _missingIngredients = [];
-  bool _isLoading = true;
+  List<RecipeIngredient> _missingIngredientEntities = [];
 
   @override
   void initState() {
@@ -27,14 +26,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   Future<void> _loadMissingIngredients() async {
     // Tạo dummy missing ingredients dựa trên missingCount của recipe
     if (widget.recipe.missingCount != null && widget.recipe.missingCount! > 0) {
-      _missingIngredients = _createDummyMissingIngredients(
+      _missingIngredientEntities = _createDummyMissingIngredients(
         widget.recipe.missingCount!,
       );
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() {});
   }
 
   // Tạo dummy missing ingredients cho testing
@@ -55,7 +52,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     return List.generate(
       count,
       (index) => RecipeIngredient(
-        recipeId: widget.recipe.recipeId ?? 0,
+        recipeId: 0, // RecipeCardModel không có recipeId; dùng 0 cho dummy
         ingredientId: index + 1,
         quantity: 1.0 + index,
         unit: UnitEnum.g,
@@ -72,6 +69,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   Widget build(BuildContext context) {
     final availableList = _availableIngredients();
     final missingList = _getMissingIngredientsDisplay();
+    final instructionSteps = _instructionSteps();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -114,7 +112,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     _heroImage(),
                     const SizedBox(height: 16),
                     Text(
-                      recipe.name,
+                      widget.recipe.name,
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -222,9 +220,15 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _stepCard(1, 'Chuẩn bị đầy đủ nguyên liệu.'),
-                    _stepCard(2, 'Sơ chế và ướp theo khẩu vị.'),
-                    _stepCard(3, 'Chế biến theo hướng dẫn và thưởng thức.'),
+                    if (instructionSteps.isNotEmpty)
+                      ...instructionSteps.asMap().entries.map(
+                        (e) => _stepCard(e.key + 1, e.value),
+                      )
+                    else ...[
+                      _stepCard(1, 'Chuẩn bị đầy đủ nguyên liệu.'),
+                      _stepCard(2, 'Sơ chế và ướp theo khẩu vị.'),
+                      _stepCard(3, 'Chế biến theo hướng dẫn và thưởng thức.'),
+                    ],
                   ],
                 ),
               ),
@@ -245,9 +249,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(
-                        context,
-                      ).push(MaterialPageRoute(builder: (_) => const PlanView()));
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PlanView()),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4CAF50),
@@ -484,18 +488,92 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   List<String> _availableIngredients() {
-    if (recipe.availableNames.isNotEmpty) return recipe.availableNames;
-    final count = recipe.availableIngredients;
+    if (widget.recipe.availableNames.isNotEmpty) {
+      return widget.recipe.availableNames;
+    }
+    final count = widget.recipe.availableIngredients;
     if (count <= 0) return [];
     return List.generate(count, (i) => 'Nguyên liệu có sẵn #${i + 1}');
   }
 
-  List<String> _missingIngredients() {
-    if (recipe.missingNames.isNotEmpty) return recipe.missingNames;
+  List<String> _missingIngredientNames() {
+    if (widget.recipe.missingNames.isNotEmpty)
+      return widget.recipe.missingNames;
     final inferredMissing =
-        (recipe.totalIngredients - recipe.availableIngredients).clamp(0, 99);
-    final count = recipe.missingCount ?? inferredMissing;
+        (widget.recipe.totalIngredients - widget.recipe.availableIngredients)
+            .clamp(0, 99);
+    final count = widget.recipe.missingCount ?? inferredMissing;
     if (count <= 0) return [];
     return List.generate(count, (i) => 'Nguyên liệu cần mua #${i + 1}');
+  }
+
+  List<String> _getMissingIngredientsDisplay() {
+    if (_missingIngredientEntities.isNotEmpty) {
+      return _missingIngredientEntities
+          .map((e) => e.ingredient?.name ?? 'Nguyên liệu cần mua')
+          .toList();
+    }
+    return _missingIngredientNames();
+  }
+
+  List<String> _instructionSteps() {
+    final text = widget.recipe.instructions;
+    if (text == null || text.trim().isEmpty) {
+      return const [];
+    }
+    // Chuẩn hóa: thay literal "\n" thành xuống dòng thực.
+    final normalized = text.replaceAll(r'\n', '\n');
+
+    // Ưu tiên tách theo xuống dòng
+    final lines = normalized
+        .split(RegExp(r'[\r\n]+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (lines.length > 1) {
+      return lines
+          .asMap()
+          .entries
+          .map((e) => _cleanStepText(e.value, e.key))
+          .toList();
+    }
+
+    // Nếu chỉ còn một chuỗi, thử tách theo pattern "Bước x:"
+    final stepPattern = RegExp(r'(?=Bước\s*\d+[:.\-])', caseSensitive: false);
+    final viaStepKeyword = normalized
+        .split(stepPattern)
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (viaStepKeyword.length > 1) {
+      return viaStepKeyword
+          .asMap()
+          .entries
+          .map((e) => _cleanStepText(e.value, e.key))
+          .toList();
+    }
+
+    // Nếu không có xuống dòng, tách theo dấu câu.
+    final sentences = normalized
+        .split(RegExp(r'(?<=[.!?])\s+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    return sentences
+        .asMap()
+        .entries
+        .map((e) => _cleanStepText(e.value, e.key))
+        .toList();
+  }
+
+  String _cleanStepText(String raw, int index) {
+    // Loại bỏ tiền tố "Bước x:" nếu có, giữ phần nội dung.
+    final cleaned = raw.replaceFirst(
+      RegExp(r'^Bước\s*\d+\s*[:.-]?\s*', caseSensitive: false),
+      '',
+    );
+    if (cleaned.trim().isNotEmpty) return cleaned.trim();
+    // fallback: nếu sau khi cắt trống, dùng raw
+    return raw.trim().isEmpty ? 'Bước ${index + 1}' : raw.trim();
   }
 }
