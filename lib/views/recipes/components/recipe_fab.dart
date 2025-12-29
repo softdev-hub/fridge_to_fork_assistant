@@ -15,27 +15,21 @@ class RecipeFAB extends StatelessWidget {
         shadowColor: Colors.black.withOpacity(0.08),
         child: InkWell(
           onTap: () {
-            // TODO: refresh recipe suggestions
+            final controller = PrimaryScrollController.of(context);
+            controller.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
           },
           borderRadius: BorderRadius.circular(22),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            constraints: const BoxConstraints(minWidth: 120),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.refresh, size: 20, color: Colors.white),
-                SizedBox(width: 8),
-                Text(
-                  'Gợi ý lại',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            constraints: const BoxConstraints(minWidth: 60),
+            child: const Icon(
+              Icons.arrow_upward,
+              size: 22,
+              color: Colors.white,
             ),
           ),
         ),
