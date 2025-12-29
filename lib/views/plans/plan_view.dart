@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import 'components/plan_tab_bar.dart';
-import 'components/week_selector.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../models/enums.dart';
+import '../../services/meal_plan_service.dart';
+import '../../services/shopping_list_service.dart';
+import 'components/calendar_dialog.dart';
+import 'components/draggable_bottom_sheet.dart';
 import 'components/meal_grid.dart';
 import 'components/plan_models.dart';
-import 'components/calendar_dialog.dart';
+import 'components/plan_tab_bar.dart';
 import 'components/shopping_list.dart';
-import 'components/draggable_bottom_sheet.dart';
+import 'components/week_selector.dart';
 import 'day_detail_view.dart';
 
 class PlanView extends StatefulWidget {
@@ -17,9 +22,10 @@ class PlanView extends StatefulWidget {
 
 class _PlanViewState extends State<PlanView> {
   int _selectedTabIndex = 0; // 0: Lịch tuần, 1: Danh sách mua sắm
-  final WeekPlan _currentWeek = dummyWeekPlan;
+  WeekPlan _currentWeek = dummyWeekPlan;
   bool _showRecipeAddForm = false;
   final ScrollController _recipeScrollController = ScrollController();
+  final GlobalKey<State<ShoppingListSection>> _shoppingListKey = GlobalKey();
 
   @override
   void dispose() {
@@ -145,6 +151,136 @@ class _PlanViewState extends State<PlanView> {
     );
   }
 
+  void _handleMealAdded(int dayIndex, MealType mealType, Meal meal) {
+    final List<DayPlan> updatedDays = List.from(_currentWeek.days);
+    final DayPlan targetDay = updatedDays[dayIndex];
+    final Map<MealType, MealSlot> newSlots = Map.of(targetDay.slots);
+    final MealSlot currentSlot =
+        newSlots[mealType] ?? MealSlot(type: mealType, meals: const []);
+    newSlots[mealType] = currentSlot.addMeal(meal);
+
+    updatedDays[dayIndex] = targetDay.copyWith(slots: newSlots);
+
+    setState(() {
+      _currentWeek = _currentWeek.copyWith(days: updatedDays);
+    });
+
+    // Ghi lại Supabase nếu meal có recipeId.
+    if (meal.recipeId != null) {
+      _persistMealToBackend(dayIndex, mealType, meal);
+
+      // Thêm missing ingredients vào shopping list
+      _addMissingIngredientsToShoppingList(dayIndex, meal);
+    }
+  }
+
+  Future<void> _persistMealToBackend(
+    int dayIndex,
+    MealType mealType,
+    Meal meal,
+  ) async {
+    final dayPlan = _currentWeek.days[dayIndex];
+    final now = DateTime.now();
+    // Tạm thời giả định tuần hiện tại là tháng hiện tại.
+    final plannedDate = DateTime(now.year, now.month, dayPlan.dayOfMonth);
+
+    // Map MealType (UI) -> MealTypeEnum (DB)
+    MealTypeEnum dbMealType;
+    switch (mealType) {
+      case MealType.breakfast:
+        dbMealType = MealTypeEnum.breakfast;
+        break;
+      case MealType.lunch:
+        dbMealType = MealTypeEnum.lunch;
+        break;
+      case MealType.dinner:
+        dbMealType = MealTypeEnum.dinner;
+        break;
+    }
+
+    try {
+      final supabase = MealPlanService.instance;
+      // Dùng user hiện tại (profiles.id == auth.user.id).
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      await supabase.addRecipeToSlot(
+        profileId: userId,
+        plannedDate: plannedDate,
+        mealType: dbMealType,
+        recipeId: meal.recipeId!,
+      );
+    } catch (_) {
+      // TODO: có thể show snackbar báo lỗi nếu cần.
+    }
+  }
+
+  /// Thêm missing ingredients vào shopping list khi add meal
+  Future<void> _addMissingIngredientsToShoppingList(
+    int dayIndex,
+    Meal meal,
+  ) async {
+    if (meal.recipeId == null) return;
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final dayPlan = _currentWeek.days[dayIndex];
+      final now = DateTime.now();
+      // Tạm thời giả định tuần hiện tại là tháng hiện tại
+      final plannedDate = DateTime(now.year, now.month, dayPlan.dayOfMonth);
+
+      // Tính toán week start (Monday của tuần chứa plannedDate)
+      final weekStart = plannedDate.subtract(
+        Duration(days: plannedDate.weekday - 1),
+      );
+
+      await ShoppingListService.instance.addMissingIngredientsToShoppingList(
+        profileId: userId,
+        recipeId: meal.recipeId!,
+        weekStart: weekStart,
+      );
+
+      // Hiển thị thông báo cho user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Đã kiểm tra và thêm nguyên liệu thiếu vào danh sách mua sắm',
+            ),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Refresh shopping list nếu đang hiển thị tab shopping list
+        if (_selectedTabIndex == 1) {
+          _refreshShoppingListIfVisible();
+        }
+      }
+    } catch (e) {
+      // Hiển thị lỗi nếu có
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi thêm nguyên liệu: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _refreshShoppingListIfVisible() {
+    final state = _shoppingListKey.currentState;
+    if (state != null) {
+      // Use dynamic to access refreshShoppingList method
+      (state as dynamic).refreshShoppingList?.call();
+    }
+  }
+
   Widget _buildWeekPlanContent() {
     return Column(
       children: [
@@ -171,6 +307,7 @@ class _PlanViewState extends State<PlanView> {
               physics: const ClampingScrollPhysics(),
               child: MealGrid(
                 weekPlan: _currentWeek,
+                onMealAdded: _handleMealAdded,
                 onDaySelected: (dayPlan, selectedDate) {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -190,8 +327,11 @@ class _PlanViewState extends State<PlanView> {
   }
 
   Widget _buildShoppingListPlaceholder() {
-    return const Expanded(
-      child: Padding(padding: EdgeInsets.all(16), child: ShoppingListSection()),
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ShoppingListSection(key: _shoppingListKey),
+      ),
     );
   }
 }

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'plan_models.dart';
 
 class DayDetailMealCard extends StatelessWidget {
-  final MealType mealType;
+  final MealType? mealType; // Made nullable to hide label for additional meals
   final Meal? meal;
   final VoidCallback? onTap;
 
   const DayDetailMealCard({
     Key? key,
-    required this.mealType,
+    this.mealType, // Made optional
     this.meal,
     this.onTap,
   }) : super(key: key);
@@ -59,15 +59,17 @@ class DayDetailMealCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Meal type label
-                Text(
-                  _getMealTypeLabel(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF9CA3AF),
+                // Meal type label (only show for first meal in slot)
+                if (mealType != null) ...[
+                  Text(
+                    _getMealTypeLabel(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF9CA3AF),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
+                  const SizedBox(height: 4),
+                ],
 
                 // Meal name
                 Text(
@@ -92,7 +94,8 @@ class DayDetailMealCard extends StatelessWidget {
   }
 
   String _getMealTypeLabel() {
-    switch (mealType) {
+    if (mealType == null) return '';
+    switch (mealType!) {
       case MealType.breakfast:
         return 'Bữa sáng';
       case MealType.lunch:

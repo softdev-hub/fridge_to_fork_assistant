@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../controllers/pantry_item_controller.dart';
 import '../../models/pantry_item.dart';
 import '../../utils/date_utils.dart' as app_date_utils;
@@ -19,6 +21,7 @@ class _PantryViewState extends State<PantryView>
     with SingleTickerProviderStateMixin {
   final PantryItemController _controller = PantryItemController();
   final TextEditingController _searchController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   late TabController _tabController;
   List<PantryItem> _allItems = [];
@@ -85,40 +88,40 @@ class _PantryViewState extends State<PantryView>
           constraints: const BoxConstraints(maxWidth: 320),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? Colors.grey[800] : Colors.white,
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Chọn phương thức quét',
+                'Chọn nguồn ảnh',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey[100] : Colors.grey[900],
+                  color: isDark ? Colors.white : Colors.grey[900],
                 ),
               ),
               const SizedBox(height: 24),
-              // Scan barcode button
+              // Camera button
               _buildScanOptionButton(
-                icon: Icons.qr_code_scanner,
-                label: 'Quét mã vạch',
+                icon: Icons.camera_alt,
+                label: 'Máy ảnh',
                 isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement barcode scanner
+                  _pickImageAndNavigate(ImageSource.camera);
                 },
               ),
               const SizedBox(height: 16),
-              // Scan receipt button
+              // Gallery button
               _buildScanOptionButton(
-                icon: Icons.receipt_long,
-                label: 'Quét hóa đơn',
+                icon: Icons.photo_library,
+                label: 'Chọn từ thư viện',
                 isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement receipt scanner
+                  _pickImageAndNavigate(ImageSource.gallery);
                 },
               ),
             ],
@@ -126,6 +129,35 @@ class _PantryViewState extends State<PantryView>
         ),
       ),
     );
+  }
+
+  Future<void> _pickImageAndNavigate(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 90,
+      );
+
+      if (image != null && mounted) {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddPantryView(initialImage: File(image.path)),
+          ),
+        );
+        if (result == true) {
+          _loadData();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi chọn ảnh: $e')));
+      }
+    }
   }
 
   Widget _buildScanOptionButton({
@@ -136,13 +168,13 @@ class _PantryViewState extends State<PantryView>
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
           color: isDark ? Colors.grey[700] : Colors.grey[100],
-          borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -174,16 +206,18 @@ class _PantryViewState extends State<PantryView>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF2F4F6);
+    final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? PantryConstants.backgroundDark
-          : PantryConstants.backgroundColor,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(isDark),
-            _buildSearchBar(isDark),
+            _buildHeader(isDark, backgroundColor),
+            _buildSearchAndControls(isDark, surfaceColor),
             _buildTabs(isDark),
             Expanded(
               child: _isLoading
@@ -195,7 +229,7 @@ class _PantryViewState extends State<PantryView>
                   : RefreshIndicator(
                       onRefresh: _loadData,
                       color: PantryConstants.primaryColor,
-                      child: _buildItemsList(isDark),
+                      child: _buildItemsList(isDark, surfaceColor),
                     ),
             ),
           ],
@@ -204,17 +238,13 @@ class _PantryViewState extends State<PantryView>
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark, Color backgroundColor) {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           padding: const EdgeInsets.all(16),
-          color:
-              (isDark
-                      ? PantryConstants.backgroundDark
-                      : PantryConstants.backgroundColor)
-                  .withOpacity(0.8),
+          color: backgroundColor.withOpacity(0.8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -241,68 +271,95 @@ class _PantryViewState extends State<PantryView>
     );
   }
 
-  Widget _buildSearchBar(bool isDark) {
+  Widget _buildSearchAndControls(bool isDark, Color surfaceColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Row(
         children: [
           // Search field
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey[800] : Colors.white,
-                borderRadius: BorderRadius.circular(
-                  PantryConstants.borderRadius,
-                ),
-                border: Border.all(
-                  color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-                ),
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) => setState(() => _searchQuery = value),
                 style: TextStyle(
-                  color: isDark ? Colors.grey[100] : Colors.grey[900],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : Colors.grey[900],
                 ),
                 decoration: InputDecoration(
                   hintText: 'Tìm nguyên liệu...',
                   hintStyle: TextStyle(
-                    color: isDark ? Colors.grey[500] : Colors.grey[400],
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w500,
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: isDark ? Colors.grey[500] : Colors.grey[400],
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 14, right: 8),
+                    child: Icon(Icons.search, color: Colors.grey[400]),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 12,
+                    vertical: 14,
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           // Barcode scanner button
           Container(
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: isDark ? Colors.grey[700] : Colors.grey[200],
-              borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: IconButton(
               onPressed: () => _showScanOptionsDialog(isDark),
               icon: Icon(
                 Icons.qr_code_scanner,
-                color: isDark ? Colors.grey[200] : Colors.grey[800],
+                color: isDark ? Colors.grey[200] : Colors.grey[700],
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           // Add button
           Container(
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: PantryConstants.primaryColor,
-              borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: PantryConstants.primaryColor.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: IconButton(
               onPressed: () async {
@@ -323,33 +380,105 @@ class _PantryViewState extends State<PantryView>
   }
 
   Widget _buildTabs(bool isDark) {
+    final selectedIndex = _tabController.index;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-          ),
-        ),
+        color: isDark
+            ? Colors.grey[800]!.withOpacity(0.6)
+            : Colors.grey[200]!.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: TabBar(
-        controller: _tabController,
-        onTap: (_) => setState(() {}),
-        indicatorColor: PantryConstants.primaryColor,
-        indicatorWeight: 2,
-        labelColor: PantryConstants.primaryColor,
-        unselectedLabelColor: isDark ? Colors.grey[400] : Colors.grey[500],
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-        tabs: [
-          Tab(text: 'Tất cả (${_allItems.length})'),
-          Tab(text: 'Đã hết hạn (${_expiredItems.length})'),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                _tabController.animateTo(0);
+                setState(() {});
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selectedIndex == 0
+                      ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: selectedIndex == 0
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  'Tất cả (${_allItems.length})',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: selectedIndex == 0
+                        ? FontWeight.bold
+                        : FontWeight.w500,
+                    color: selectedIndex == 0
+                        ? PantryConstants.primaryColor
+                        : (isDark ? Colors.grey[400] : Colors.grey[500]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                _tabController.animateTo(1);
+                setState(() {});
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selectedIndex == 1
+                      ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: selectedIndex == 1
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  'Đã hết hạn (${_expiredItems.length})',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: selectedIndex == 1
+                        ? FontWeight.bold
+                        : FontWeight.w500,
+                    color: selectedIndex == 1
+                        ? PantryConstants.primaryColor
+                        : (isDark ? Colors.grey[400] : Colors.grey[500]),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildItemsList(bool isDark) {
+  Widget _buildItemsList(bool isDark, Color surfaceColor) {
     final items = _filteredItems;
 
     if (items.isEmpty) {
@@ -378,46 +507,18 @@ class _PantryViewState extends State<PantryView>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 1,
+      padding: const EdgeInsets.all(20),
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[800] : Colors.white,
-            borderRadius: BorderRadius.circular(
-              PantryConstants.borderRadiusLarge,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder: (context, index) => Divider(
-              height: 1,
-              color: isDark ? Colors.grey[700] : Colors.grey[100],
-            ),
-            itemBuilder: (context, index) {
-              return _buildPantryItem(items[index], isDark);
-            },
-          ),
-        );
+        return _buildPantryCard(items[index], isDark, surfaceColor);
       },
     );
   }
 
-  Widget _buildPantryItem(PantryItem item, bool isDark) {
+  Widget _buildPantryCard(PantryItem item, bool isDark, Color surfaceColor) {
     final daysLeft = item.daysUntilExpiry;
-    final expiryColor = PantryConstants.getExpiryColor(daysLeft);
-    final expiryText = PantryConstants.getExpiryText(daysLeft);
 
-    return InkWell(
+    return GestureDetector(
       onTap: () async {
         final result = await Navigator.push(
           context,
@@ -432,48 +533,196 @@ class _PantryViewState extends State<PantryView>
           _loadData();
         }
       },
-      child: Padding(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Row(
           children: [
             // Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(PantryConstants.borderRadius),
-              child: item.imageUrl != null
-                  ? Image.network(
-                      item.imageUrl!,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const PantryPlaceholderImage(size: 48),
-                    )
-                  : const PantryPlaceholderImage(size: 48),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    item.imageUrl != null
+                        ? Image.network(
+                            item.imageUrl!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const PantryPlaceholderImage(size: 80),
+                          )
+                        : const PantryPlaceholderImage(size: 80),
+                    // Overlay ring
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.black.withOpacity(0.05),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(width: 16),
-            // Name only (removed quantity)
+            // Content
             Expanded(
-              child: Text(
-                item.ingredient?.name ?? 'Không xác định',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15,
-                  color: isDark ? Colors.grey[100] : Colors.grey[900],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header row with name and more button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.ingredient?.name ?? 'Không xác định',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            height: 1.2,
+                            color: isDark ? Colors.white : Colors.grey[900],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(
+                        Icons.more_horiz,
+                        size: 20,
+                        color: isDark ? Colors.grey[600] : Colors.grey[300],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Quantity
+                  Text(
+                    _getQuantityText(item),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey[400] : Colors.grey[500],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Expiry badge
+                  _buildExpiryBadge(daysLeft, isDark),
+                ],
               ),
             ),
-            // Expiry
-            if (expiryText != null)
-              Text(
-                expiryText,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: expiryColor,
-                ),
-              ),
           ],
         ),
+      ),
+    );
+  }
+
+  String _getQuantityText(PantryItem item) {
+    final quantity = item.quantity;
+    final unitStr = item.unit.displayName;
+    // Format quantity: show as integer if whole number
+    final quantityStr = quantity == quantity.roundToDouble()
+        ? quantity.round().toString()
+        : quantity.toString();
+    return '$quantityStr $unitStr'.trim();
+  }
+
+  Widget _buildExpiryBadge(int? daysLeft, bool isDark) {
+    if (daysLeft == null) {
+      return const SizedBox.shrink();
+    }
+
+    Color bgColor;
+    Color textColor;
+    IconData icon;
+    String text;
+
+    if (daysLeft < 0) {
+      // Expired
+      bgColor = isDark ? Colors.red[900]!.withOpacity(0.2) : Colors.red[50]!;
+      textColor = isDark ? Colors.red[400]! : Colors.red[600]!;
+      icon = Icons.warning;
+      text = 'Hết hạn ${-daysLeft} ngày';
+    } else if (daysLeft == 0) {
+      // Expires today
+      bgColor = isDark ? Colors.red[900]!.withOpacity(0.2) : Colors.red[50]!;
+      textColor = isDark ? Colors.red[400]! : Colors.red[600]!;
+      icon = Icons.warning;
+      text = 'Hết hạn hôm nay';
+    } else if (daysLeft <= 2) {
+      // Expires very soon (1-2 days)
+      bgColor = isDark ? Colors.red[900]!.withOpacity(0.2) : Colors.red[50]!;
+      textColor = isDark ? Colors.red[400]! : Colors.red[600]!;
+      icon = Icons.warning;
+      text = 'Còn $daysLeft ngày';
+    } else if (daysLeft <= 5) {
+      // Expires soon (3-5 days)
+      bgColor = isDark
+          ? Colors.orange[900]!.withOpacity(0.2)
+          : Colors.orange[50]!;
+      textColor = isDark ? Colors.orange[400]! : Colors.orange[600]!;
+      icon = Icons.schedule;
+      text = 'Còn $daysLeft ngày';
+    } else {
+      // Good (5+ days)
+      bgColor = isDark
+          ? Colors.green[900]!.withOpacity(0.2)
+          : Colors.green[50]!;
+      textColor = isDark ? Colors.green[400]! : Colors.green[700]!;
+      icon = Icons.check_circle;
+      text = 'Còn $daysLeft ngày';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }
