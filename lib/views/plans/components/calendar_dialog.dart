@@ -93,7 +93,6 @@ class _CalendarDialogState extends State<CalendarDialog> {
     List<Widget> dayWidgets = [];
 
     // Add previous month's trailing days
-    final prevMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     final daysInPrevMonth = DateTime(
       _currentMonth.year,
       _currentMonth.month,

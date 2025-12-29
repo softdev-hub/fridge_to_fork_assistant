@@ -5,9 +5,14 @@ import 'plan_models.dart';
 class MealGrid extends StatelessWidget {
   final WeekPlan weekPlan;
   final Function(DayPlan, DateTime)? onDaySelected;
+  final void Function(int dayIndex, MealType mealType, Meal meal)? onMealAdded;
 
-  const MealGrid({Key? key, required this.weekPlan, this.onDaySelected})
-    : super(key: key);
+  const MealGrid({
+    Key? key,
+    required this.weekPlan,
+    this.onDaySelected,
+    this.onMealAdded,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +96,21 @@ class MealGrid extends StatelessWidget {
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: MealCard(mealType: mealType, meal: mealSlot.meal),
+              child: DragTarget<Meal>(
+                onWillAccept: (data) => true,
+                onAccept: (meal) {
+                  if (onMealAdded != null) {
+                    onMealAdded!(dayIndex, mealType, meal);
+                  }
+                },
+                builder: (context, candidateData, rejectedData) {
+                  return AnimatedScale(
+                    duration: const Duration(milliseconds: 150),
+                    scale: candidateData.isNotEmpty ? 0.96 : 1.0,
+                    child: MealCard(mealType: mealType, meals: mealSlot.meals),
+                  );
+                },
+              ),
             ),
           );
         }),

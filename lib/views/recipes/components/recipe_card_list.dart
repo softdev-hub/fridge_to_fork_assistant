@@ -10,6 +10,7 @@ enum RecipeMealTime { breakfast, lunch, dinner }
 enum MatchType { full, partial }
 
 class Recipe {
+  final int? recipeId; // Thêm recipeId để hỗ trợ shopping list
   final String name;
   final String timeLabel;
   final RecipeDifficulty difficulty;
@@ -22,6 +23,7 @@ class Recipe {
   final bool isExpiring;
 
   Recipe({
+    this.recipeId, // Thêm vào constructor
     required this.name,
     required this.timeLabel,
     required this.difficulty,
@@ -35,10 +37,11 @@ class Recipe {
   });
 }
 
-// Dummy data mô phỏng theo HTML
+// Dummy data mô phỏng theo HTML với recipeId để test shopping list
 final List<Recipe> dummyRecipes = [
   Recipe(
-    name: 'Cà ri gà thơm lừng',
+    recipeId: 1, // Thêm recipeId để test shopping list
+    name: 'Cà ri gà thơm lừng', // Giữ lại name
     timeLabel: '15 phút',
     difficulty: RecipeDifficulty.easy,
     mealTime: RecipeMealTime.dinner,
@@ -49,6 +52,7 @@ final List<Recipe> dummyRecipes = [
     isExpiring: true,
   ),
   Recipe(
+    recipeId: 2,
     name: 'Bánh mì chả cá Nha Trang',
     timeLabel: '20 phút',
     difficulty: RecipeDifficulty.medium,
@@ -59,6 +63,7 @@ final List<Recipe> dummyRecipes = [
     missingCount: 1,
   ),
   Recipe(
+    recipeId: 3,
     name: 'Chả cá Lã Vọng truyền thống',
     timeLabel: '15 phút',
     difficulty: RecipeDifficulty.hard,
@@ -69,6 +74,7 @@ final List<Recipe> dummyRecipes = [
     missingCount: 2,
   ),
   Recipe(
+    recipeId: 4,
     name: 'Bún cá Hải Phòng truyền thống',
     timeLabel: '20 phút',
     difficulty: RecipeDifficulty.hard,
