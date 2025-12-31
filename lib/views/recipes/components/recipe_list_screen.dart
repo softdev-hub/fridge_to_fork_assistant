@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../controllers/recipe_suggestion_controller.dart';
+import '../../../controllers/recipe_suggestion_filters.dart';
 import '../../../models/enums.dart';
 import '../../../models/recipe_ingredient.dart';
-import 'recipe_filter_bar.dart';
 import 'recipe_card_list.dart';
+import 'recipe_matching_filter_bar.dart';
 
 class RecipeListScreen extends StatefulWidget {
   const RecipeListScreen({Key? key}) : super(key: key);
@@ -17,6 +18,11 @@ class RecipeListScreen extends StatefulWidget {
 class _RecipeListScreenState extends State<RecipeListScreen> {
   final RecipeSuggestionController _controller = RecipeSuggestionController();
   late Future<_RecipeScreenData> _future;
+  RecipeFilterOptions _filters = const RecipeFilterOptions(
+    timeKey: '',
+    mealLabels: <String>{},
+    cuisineLabels: <String>{},
+  );
 
   @override
   void initState() {
@@ -35,7 +41,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       seedIfEmpty: false, // dùng dữ liệu thật của user đang đăng nhập
       checkQuantity: false, // nới lỏng để vẫn hiển thị gần đủ khi thiếu lượng
     );
-    final cards = suggestions.map(_mapToCardModel).toList();
+    final filtered = RecipeSuggestionFilters.applyToSuggestions(
+      suggestions,
+      _filters,
+      lenientMissing: true,
+    );
+    final cards = filtered.map(_mapToCardModel).toList();
     final fullCount = cards.where((c) => c.matchType == MatchType.full).length;
     return _RecipeScreenData(recipes: cards, fullCount: fullCount);
   }
@@ -167,7 +178,15 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const RecipeFilterBar(),
+                      RecipeMatchingFilterBar(
+                        filters: _filters,
+                        onApplied: (options) {
+                          setState(() {
+                            _filters = options;
+                            _future = _load();
+                          });
+                        },
+                      ),
                       const SizedBox(height: 20),
                       _SummaryRow(
                         total: recipes.length,
