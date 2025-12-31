@@ -9,6 +9,7 @@ import '../home_view.dart';
 import '../pantry/pantry_view.dart';
 import '../plans/plan_view.dart';
 import '../../controllers/recipe_suggestion_controller.dart';
+import '../../controllers/recipe_suggestion_filters.dart';
 import '../../models/enums.dart';
 import '../../models/recipe_ingredient.dart';
 
@@ -22,6 +23,11 @@ class RecipeMatchingView extends StatefulWidget {
 class _RecipeMatchingViewState extends State<RecipeMatchingView> {
   final RecipeSuggestionController _controller = RecipeSuggestionController();
   late Future<_MatchData> _future;
+  RecipeFilterOptions _filters = const RecipeFilterOptions(
+    timeKey: '',
+    mealLabels: <String>{},
+    cuisineLabels: <String>{},
+  );
 
   @override
   void initState() {
@@ -40,7 +46,12 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
       seedIfEmpty: false, // dùng dữ liệu thật của user đang đăng nhập
       checkQuantity: false, // nới lỏng để vẫn có gợi ý khi thiếu lượng
     );
-    final cards = suggestions.map(_mapToCardModel).toList();
+    final filtered = RecipeSuggestionFilters.applyToSuggestions(
+      suggestions,
+      _filters,
+      lenientMissing: true,
+    );
+    final cards = filtered.map(_mapToCardModel).toList();
     return _MatchData(cards: cards);
   }
 
@@ -196,7 +207,13 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
                   SizedBox(
                     width: double.infinity,
                     child: RecipeMatchingFilterBar(
-                      selectedFilters: const ['time', 'meal', 'cuisine'],
+                      filters: _filters,
+                      onApplied: (options) {
+                        setState(() {
+                          _filters = options;
+                          _future = _load();
+                        });
+                      },
                     ),
                   ),
                   const SizedBox(height: 16),
