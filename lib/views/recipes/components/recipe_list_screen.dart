@@ -172,6 +172,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                           _future = _load();
                         });
                       },
+                      onClearFilters: _clearFilters,
                     );
                   }
 
@@ -218,6 +219,17 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         );
       },
     );
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _filters = const RecipeFilterOptions(
+        timeKey: '',
+        mealLabels: <String>{},
+        cuisineLabels: <String>{},
+      );
+      _future = _load();
+    });
   }
 }
 
@@ -287,8 +299,9 @@ class _ErrorState extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final VoidCallback onRetry;
+  final VoidCallback? onClearFilters;
 
-  const _EmptyState({required this.onRetry});
+  const _EmptyState({required this.onRetry, this.onClearFilters});
 
   @override
   Widget build(BuildContext context) {
@@ -303,10 +316,23 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Tải lại'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tải lại'),
+              ),
+              if (onClearFilters != null)
+                ElevatedButton.icon(
+                  onPressed: onClearFilters,
+                  icon: const Icon(Icons.filter_alt_off),
+                  label: const Text('Bỏ lọc'),
+                ),
+            ],
           ),
         ],
       ),
