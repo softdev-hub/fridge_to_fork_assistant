@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fridge_to_fork_assistant/views/welcome/welcome_view.dart';
 import 'package:fridge_to_fork_assistant/services/notification_service.dart';
+import 'package:fridge_to_fork_assistant/views/welcome/splash_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: WelcomeView(),
+      home: SplashView(),
     );
   }
 }

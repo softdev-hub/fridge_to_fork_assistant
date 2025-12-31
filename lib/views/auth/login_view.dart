@@ -105,8 +105,8 @@ class _LoginViewState extends State<LoginView> {
       debugPrint('User: ${response.user?.email}');
       debugPrint('Session: ${response.session != null ? "exists" : "null"}');
 
-      // Navigate to HomeView after successful login
-      if (response.session != null && mounted) {
+      // Navigate to HomeView after successful login (remove stack)
+      if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeView()),
           (route) => false,

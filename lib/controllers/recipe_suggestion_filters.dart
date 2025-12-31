@@ -59,12 +59,13 @@ class RecipeSuggestionFilters {
     bool lenientMissing = true,
   }) {
     final mealEnums = _mapMeals(options.mealLabels);
+    final hasMealSelection = options.mealLabels.isNotEmpty;
     final cuisines = _normalizeCuisines(options.cuisineLabels);
 
     return suggestions.where((s) {
       final r = s.recipe;
       return _matchTime(r, options.timeKey, lenientMissing) &&
-          _matchMeal(r, mealEnums, lenientMissing) &&
+          _matchMeal(r, mealEnums, lenientMissing, hasMealSelection) &&
           _matchCuisine(r, cuisines, lenientMissing);
     }).toList();
   }
@@ -76,11 +77,12 @@ class RecipeSuggestionFilters {
     bool lenientMissing = true,
   }) {
     final mealEnums = _mapMeals(options.mealLabels);
+    final hasMealSelection = options.mealLabels.isNotEmpty;
     final cuisines = _normalizeCuisines(options.cuisineLabels);
 
     return recipes.where((r) {
       return _matchTime(r, options.timeKey, lenientMissing) &&
-          _matchMeal(r, mealEnums, lenientMissing) &&
+          _matchMeal(r, mealEnums, lenientMissing, hasMealSelection) &&
           _matchCuisine(r, cuisines, lenientMissing);
     }).toList();
   }
@@ -110,8 +112,11 @@ class RecipeSuggestionFilters {
     Recipe recipe,
     Set<MealTypeEnum> allowed,
     bool lenientMissing,
+    bool hasSelection,
   ) {
-    if (allowed.isEmpty) return true;
+    // Nếu người dùng có chọn bữa nhưng không map được (ví dụ chọn "Bữa phụ"),
+    // thì không có món nào phù hợp.
+    if (allowed.isEmpty) return hasSelection ? false : true;
     final meal = recipe.mealType;
     if (meal == null) return lenientMissing;
     return allowed.contains(meal);
