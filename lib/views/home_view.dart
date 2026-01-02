@@ -636,7 +636,7 @@ class _HomeContentState extends State<_HomeContent> {
           ],
         ),
         const SizedBox(height: 12),
-        
+
         // Test button for ingredient filter functionality
         Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -665,12 +665,15 @@ class _HomeContentState extends State<_HomeContent> {
               children: [
                 Icon(Icons.eco, size: 20),
                 SizedBox(width: 8),
-                Text('Test: Món từ Cà rốt', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Test: Món từ Cà rốt',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
           ),
         ),
-        
+
         _buildRecipeCard(
           'Phở Bò Hà Nội',
           '45 phút',

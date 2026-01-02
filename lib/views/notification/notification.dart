@@ -73,7 +73,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
   void _navigateToRecipesWithIngredient(ExpiryAlert alert) {
     NavigationUtils.navigateToRecipesWithIngredient(
-      context, 
+      context,
       alert.ingredientName,
     );
   }
@@ -295,9 +295,9 @@ class _NotificationPageState extends State<NotificationPage> {
       ),
       time: alert.timeAgo,
       actionText: isExpired ? 'Xem chi tiết' : 'Sử dụng ngay',
-      onAction: () => isExpired 
-        ? _navigateToPantryDetail(alert)
-        : _navigateToRecipesWithIngredient(alert),
+      onAction: () => isExpired
+          ? _navigateToPantryDetail(alert)
+          : _navigateToRecipesWithIngredient(alert),
       isDark: isDark,
       isOld: isOld,
     );

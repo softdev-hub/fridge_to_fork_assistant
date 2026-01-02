@@ -34,7 +34,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   Future<_RecipeScreenData> _load() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      return _RecipeScreenData(recipes: const [], fullCount: 0, authRequired: true);
+      return _RecipeScreenData(
+        recipes: const [],
+        fullCount: 0,
+        authRequired: true,
+      );
     }
 
     final suggestions = await _controller.getSuggestedRecipes(

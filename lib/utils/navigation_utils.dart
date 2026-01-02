@@ -4,15 +4,14 @@ import '../views/recipes/recipe_matching_view.dart';
 class NavigationUtils {
   /// Navigate to recipe matching view with specific ingredient filter
   static void navigateToRecipesWithIngredient(
-    BuildContext context, 
+    BuildContext context,
     String ingredientName,
   ) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RecipeMatchingView(
-          initialIngredientFilter: ingredientName,
-        ),
+        builder: (context) =>
+            RecipeMatchingView(initialIngredientFilter: ingredientName),
       ),
     );
   }
@@ -21,9 +20,7 @@ class NavigationUtils {
   static void navigateToRecipes(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const RecipeMatchingView(),
-      ),
+      MaterialPageRoute(builder: (context) => const RecipeMatchingView()),
     );
   }
 }

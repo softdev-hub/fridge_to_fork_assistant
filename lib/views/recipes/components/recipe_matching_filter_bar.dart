@@ -39,8 +39,10 @@ class RecipeMatchingFilterBar extends StatelessWidget {
   Widget _buildFilterButton(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        final result =
-            await RecipeFiltersDefaultView.show(context, initial: filters);
+        final result = await RecipeFiltersDefaultView.show(
+          context,
+          initial: filters,
+        );
         if (result != null && onApplied != null) {
           onApplied!(result);
         }
@@ -79,18 +81,21 @@ class RecipeMatchingFilterBar extends StatelessWidget {
     }
 
     if (filters.ingredientLabels.isNotEmpty) {
-      final ingredientText = 'Nguyên liệu: ${filters.ingredientLabels.join(', ')}';
+      final ingredientText =
+          'Nguyên liệu: ${filters.ingredientLabels.join(', ')}';
       widgets.add(_chip(icon: Icons.eco, label: ingredientText));
       widgets.add(const SizedBox(width: 8));
     }
 
     // Nếu không có gì được chọn, hiển thị chip hint.
     if (widgets.isEmpty) {
-      widgets.add(_chip(
-        icon: Icons.filter_alt_outlined,
-        label: 'Chưa chọn bộ lọc',
-        isSelected: false,
-      ));
+      widgets.add(
+        _chip(
+          icon: Icons.filter_alt_outlined,
+          label: 'Chưa chọn bộ lọc',
+          isSelected: false,
+        ),
+      );
     } else {
       // bỏ spacer cuối cùng
       if (widgets.isNotEmpty && widgets.last is SizedBox) {

@@ -15,11 +15,9 @@ import '../../models/recipe_ingredient.dart';
 
 class RecipeMatchingView extends StatefulWidget {
   final String? initialIngredientFilter;
-  
-  const RecipeMatchingView({
-    Key? key, 
-    this.initialIngredientFilter,
-  }) : super(key: key);
+
+  const RecipeMatchingView({Key? key, this.initialIngredientFilter})
+    : super(key: key);
 
   @override
   State<RecipeMatchingView> createState() => _RecipeMatchingViewState();
@@ -278,8 +276,7 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
                               await _future;
                             },
                             child: ListView(
-                              physics:
-                                  const AlwaysScrollableScrollPhysics(),
+                              physics: const AlwaysScrollableScrollPhysics(),
                               children: [
                                 _EmptyState(
                                   onRetry: () {
@@ -304,8 +301,7 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
                             recipes: recipes,
                             isTablet: false,
                             isDesktop: false,
-                            physics:
-                                const AlwaysScrollableScrollPhysics(),
+                            physics: const AlwaysScrollableScrollPhysics(),
                           ),
                         );
                       },

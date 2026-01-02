@@ -96,11 +96,7 @@ class RecipeSuggestionFilters {
     }).toList();
   }
 
-  static bool _matchTime(
-    Recipe recipe,
-    String timeKey,
-    bool lenientMissing,
-  ) {
+  static bool _matchTime(Recipe recipe, String timeKey, bool lenientMissing) {
     if (timeKey.isEmpty || timeKey == 'none') return true;
     final minutes = recipe.cookingTimeMinutes;
     // Cho qua nếu thiếu dữ liệu khi ở chế độ lenient
@@ -208,9 +204,10 @@ class RecipeSuggestionFilters {
     Set<String> ingredients,
   ) {
     if (ingredients.isEmpty) return true;
-    
+
     // Check if any of the recipe ingredients match the filter
-    final recipeIngredients = suggestion.recipe.ingredients ?? <RecipeIngredient>[];
+    final recipeIngredients =
+        suggestion.recipe.ingredients ?? <RecipeIngredient>[];
     for (final recipeIng in recipeIngredients) {
       final ingredientName = recipeIng.ingredient?.name;
       final ingName = ingredientName?.trim().toLowerCase() ?? '';
@@ -225,12 +222,9 @@ class RecipeSuggestionFilters {
     return false;
   }
 
-  static bool _matchIngredientInRecipe(
-    Recipe recipe,
-    Set<String> ingredients,
-  ) {
+  static bool _matchIngredientInRecipe(Recipe recipe, Set<String> ingredients) {
     if (ingredients.isEmpty) return true;
-    
+
     // Check if any of the recipe ingredients match the filter
     final recipeIngredients = recipe.ingredients ?? <RecipeIngredient>[];
     for (final recipeIng in recipeIngredients) {
@@ -247,4 +241,3 @@ class RecipeSuggestionFilters {
     return false;
   }
 }
-
