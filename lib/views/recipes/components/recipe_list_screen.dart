@@ -22,6 +22,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     timeKey: '',
     mealLabels: <String>{},
     cuisineLabels: <String>{},
+    ingredientLabels: <String>{},
   );
 
   @override
@@ -33,7 +34,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   Future<_RecipeScreenData> _load() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      return _RecipeScreenData(recipes: const [], fullCount: 0, authRequired: true);
+      return _RecipeScreenData(
+        recipes: const [],
+        fullCount: 0,
+        authRequired: true,
+      );
     }
 
     final suggestions = await _controller.getSuggestedRecipes(
@@ -227,6 +232,19 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         timeKey: '',
         mealLabels: <String>{},
         cuisineLabels: <String>{},
+        ingredientLabels: <String>{},
+      );
+      _future = _load();
+    });
+  }
+
+  void _clearIngredientFilter() {
+    setState(() {
+      _filters = RecipeFilterOptions(
+        timeKey: _filters.timeKey,
+        mealLabels: _filters.mealLabels,
+        cuisineLabels: _filters.cuisineLabels,
+        ingredientLabels: <String>{},
       );
       _future = _load();
     });
