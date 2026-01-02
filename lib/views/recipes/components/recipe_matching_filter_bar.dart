@@ -14,6 +14,7 @@ class RecipeMatchingFilterBar extends StatelessWidget {
       timeKey: '',
       mealLabels: <String>{},
       cuisineLabels: <String>{},
+      ingredientLabels: <String>{},
     ),
     this.onApplied,
   }) : super(key: key);
@@ -74,6 +75,12 @@ class RecipeMatchingFilterBar extends StatelessWidget {
     if (filters.cuisineLabels.isNotEmpty) {
       final cuisineText = filters.cuisineLabels.join(', ');
       widgets.add(_chip(icon: Icons.public, label: cuisineText));
+      widgets.add(const SizedBox(width: 8));
+    }
+
+    if (filters.ingredientLabels.isNotEmpty) {
+      final ingredientText = 'Nguyên liệu: ${filters.ingredientLabels.join(', ')}';
+      widgets.add(_chip(icon: Icons.eco, label: ingredientText));
       widgets.add(const SizedBox(width: 8));
     }
 

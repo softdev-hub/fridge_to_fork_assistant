@@ -1,5 +1,6 @@
 import '../models/enums.dart';
 import '../models/recipe.dart';
+import '../models/recipe_ingredient.dart';
 import 'recipe_suggestion_controller.dart';
 
 /// Helper to normalize and validate filter selections coming from
@@ -11,11 +12,13 @@ class RecipeFilterOptions {
   final String timeKey;
   final Set<String> mealLabels; // e.g. {'Sáng', 'Trưa'}
   final Set<String> cuisineLabels; // e.g. {'Việt', 'Á'}
+  final Set<String> ingredientLabels; // e.g. {'Cà rốt', 'Thịt bò'}
 
   const RecipeFilterOptions({
     required this.timeKey,
     required this.mealLabels,
     required this.cuisineLabels,
+    this.ingredientLabels = const <String>{},
   });
 
   bool get isComplete =>
@@ -26,11 +29,13 @@ class RecipeFilterOptions {
     required String selectedTime,
     required Set<String> selectedMeals,
     required Set<String> selectedCuisines,
+    Set<String> selectedIngredients = const <String>{},
   }) {
     return RecipeFilterOptions(
       timeKey: selectedTime,
       mealLabels: Set<String>.from(selectedMeals),
       cuisineLabels: Set<String>.from(selectedCuisines),
+      ingredientLabels: Set<String>.from(selectedIngredients),
     );
   }
 }
@@ -61,12 +66,14 @@ class RecipeSuggestionFilters {
     final mealEnums = _mapMeals(options.mealLabels);
     final hasMealSelection = options.mealLabels.isNotEmpty;
     final cuisines = _normalizeCuisines(options.cuisineLabels);
+    final ingredients = _normalizeIngredients(options.ingredientLabels);
 
     return suggestions.where((s) {
       final r = s.recipe;
       return _matchTime(r, options.timeKey, lenientMissing) &&
           _matchMeal(r, mealEnums, lenientMissing, hasMealSelection) &&
-          _matchCuisine(r, cuisines, lenientMissing);
+          _matchCuisine(r, cuisines, lenientMissing) &&
+          _matchIngredient(s, ingredients);
     }).toList();
   }
 
@@ -79,11 +86,13 @@ class RecipeSuggestionFilters {
     final mealEnums = _mapMeals(options.mealLabels);
     final hasMealSelection = options.mealLabels.isNotEmpty;
     final cuisines = _normalizeCuisines(options.cuisineLabels);
+    final ingredients = _normalizeIngredients(options.ingredientLabels);
 
     return recipes.where((r) {
       return _matchTime(r, options.timeKey, lenientMissing) &&
           _matchMeal(r, mealEnums, lenientMissing, hasMealSelection) &&
-          _matchCuisine(r, cuisines, lenientMissing);
+          _matchCuisine(r, cuisines, lenientMissing) &&
+          _matchIngredientInRecipe(r, ingredients);
     }).toList();
   }
 
@@ -188,6 +197,54 @@ class RecipeSuggestionFilters {
       }
     }
     return mapped;
+  }
+
+  static Set<String> _normalizeIngredients(Set<String> labels) {
+    return labels.map((label) => label.trim().toLowerCase()).toSet();
+  }
+
+  static bool _matchIngredient(
+    RecipeSuggestion suggestion,
+    Set<String> ingredients,
+  ) {
+    if (ingredients.isEmpty) return true;
+    
+    // Check if any of the recipe ingredients match the filter
+    final recipeIngredients = suggestion.recipe.ingredients ?? <RecipeIngredient>[];
+    for (final recipeIng in recipeIngredients) {
+      final ingredientName = recipeIng.ingredient?.name;
+      final ingName = ingredientName?.trim().toLowerCase() ?? '';
+      if (ingName.isNotEmpty) {
+        for (final filterIng in ingredients) {
+          if (ingName.contains(filterIng) || filterIng.contains(ingName)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  static bool _matchIngredientInRecipe(
+    Recipe recipe,
+    Set<String> ingredients,
+  ) {
+    if (ingredients.isEmpty) return true;
+    
+    // Check if any of the recipe ingredients match the filter
+    final recipeIngredients = recipe.ingredients ?? <RecipeIngredient>[];
+    for (final recipeIng in recipeIngredients) {
+      final ingredientName = recipeIng.ingredient?.name;
+      final ingName = ingredientName?.trim().toLowerCase() ?? '';
+      if (ingName.isNotEmpty) {
+        for (final filterIng in ingredients) {
+          if (ingName.contains(filterIng) || filterIng.contains(ingName)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 }
 

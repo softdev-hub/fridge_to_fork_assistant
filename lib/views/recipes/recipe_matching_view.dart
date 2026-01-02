@@ -14,7 +14,12 @@ import '../../models/enums.dart';
 import '../../models/recipe_ingredient.dart';
 
 class RecipeMatchingView extends StatefulWidget {
-  const RecipeMatchingView({Key? key}) : super(key: key);
+  final String? initialIngredientFilter;
+  
+  const RecipeMatchingView({
+    Key? key, 
+    this.initialIngredientFilter,
+  }) : super(key: key);
 
   @override
   State<RecipeMatchingView> createState() => _RecipeMatchingViewState();
@@ -27,11 +32,21 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
     timeKey: '',
     mealLabels: <String>{},
     cuisineLabels: <String>{},
+    ingredientLabels: <String>{},
   );
 
   @override
   void initState() {
     super.initState();
+    // Nếu có ingredient filter từ notification, áp dụng ngay
+    if (widget.initialIngredientFilter != null) {
+      _filters = RecipeFilterOptions(
+        timeKey: '',
+        mealLabels: <String>{},
+        cuisineLabels: <String>{},
+        ingredientLabels: {widget.initialIngredientFilter!},
+      );
+    }
     _future = _load();
   }
 
@@ -312,6 +327,19 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
         timeKey: '',
         mealLabels: <String>{},
         cuisineLabels: <String>{},
+        ingredientLabels: <String>{},
+      );
+      _future = _load();
+    });
+  }
+
+  void _clearIngredientFilter() {
+    setState(() {
+      _filters = RecipeFilterOptions(
+        timeKey: _filters.timeKey,
+        mealLabels: _filters.mealLabels,
+        cuisineLabels: _filters.cuisineLabels,
+        ingredientLabels: <String>{},
       );
       _future = _load();
     });

@@ -636,6 +636,41 @@ class _HomeContentState extends State<_HomeContent> {
           ],
         ),
         const SizedBox(height: 12),
+        
+        // Test button for ingredient filter functionality
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: ElevatedButton(
+            onPressed: () {
+              // Simulate clicking on a carrot notification
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RecipeMatchingView(
+                    initialIngredientFilter: 'cà rốt',
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[400],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.eco, size: 20),
+                SizedBox(width: 8),
+                Text('Test: Món từ Cà rốt', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+        
         _buildRecipeCard(
           'Phở Bò Hà Nội',
           '45 phút',
