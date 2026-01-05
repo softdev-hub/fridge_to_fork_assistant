@@ -47,24 +47,42 @@ class _PantryViewState extends State<PantryView>
     setState(() => _isLoading = true);
     try {
       final items = await _controller.getAllPantryItems();
-      // Sort by expiry date ascending (soonest first, null dates at end)
-      app_date_utils.DateUtils.sortByDate(items, (item) => item.expiryDate);
 
-      // Group by ingredient name and keep only the one with earliest expiry
-      final Map<int, PantryItem> groupedItems = {};
-      for (final item in items) {
+      // Tách riêng items hết hạn và còn hạn TRƯỚC khi gộp
+      final expiredItemsList = items.where((item) => item.isExpired).toList();
+      final validItemsList = items.where((item) => !item.isExpired).toList();
+
+      // Sort by expiry date ascending (soonest first, null dates at end)
+      app_date_utils.DateUtils.sortByDate(
+        expiredItemsList,
+        (item) => item.expiryDate,
+      );
+      app_date_utils.DateUtils.sortByDate(
+        validItemsList,
+        (item) => item.expiryDate,
+      );
+
+      // Group expired items by ingredient name (keep only one with earliest expiry)
+      final Map<int, PantryItem> groupedExpiredItems = {};
+      for (final item in expiredItemsList) {
         final ingredientId = item.ingredientId;
-        if (!groupedItems.containsKey(ingredientId)) {
-          groupedItems[ingredientId] = item;
+        if (!groupedExpiredItems.containsKey(ingredientId)) {
+          groupedExpiredItems[ingredientId] = item;
         }
-        // Already sorted, so first item has earliest expiry
       }
-      final uniqueItems = groupedItems.values.toList();
+
+      // Group valid items by ingredient name (keep only one with earliest expiry)
+      final Map<int, PantryItem> groupedValidItems = {};
+      for (final item in validItemsList) {
+        final ingredientId = item.ingredientId;
+        if (!groupedValidItems.containsKey(ingredientId)) {
+          groupedValidItems[ingredientId] = item;
+        }
+      }
 
       setState(() {
-        // Exclude expired items from "All" tab
-        _allItems = uniqueItems.where((item) => !item.isExpired).toList();
-        _expiredItems = uniqueItems.where((item) => item.isExpired).toList();
+        _allItems = groupedValidItems.values.toList();
+        _expiredItems = groupedExpiredItems.values.toList();
         _isLoading = false;
       });
     } catch (e) {

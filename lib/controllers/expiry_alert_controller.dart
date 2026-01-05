@@ -54,27 +54,29 @@ class ExpiryAlertController {
         .toList();
   }
 
-  /// Generate alerts for items expiring within specified days
+  /// Generate alerts for items expiring within specified days AND already expired items
   /// This checks pantry_items and creates alerts if not already existing
   Future<List<ExpiryAlert>> generateAlertsForExpiringItems({
     int daysBeforeExpiry = 3,
+    int daysExpiredMax = 7, // Bao gồm items đã hết hạn trong 7 ngày qua
   }) async {
     final profileId = _currentProfileId;
     if (profileId == null) throw Exception('User not authenticated');
 
-    // Get items expiring within the specified days
+    // Get items expiring within the specified days AND already expired
     final today = DateTime.now();
     final futureDate = today.add(Duration(days: daysBeforeExpiry));
-    final todayStr = today.toIso8601String().split('T')[0];
+    final pastDate = today.subtract(Duration(days: daysExpiredMax));
+    final pastDateStr = pastDate.toIso8601String().split('T')[0];
     final futureDateStr = futureDate.toIso8601String().split('T')[0];
 
-    // Get pantry items expiring soon
+    // Get pantry items expiring soon OR already expired (within range)
     final pantryResponse = await _supabase
         .from('pantry_items')
         .select('*, ingredients(*)')
         .eq('profile_id', profileId)
         .isFilter('deleted_at', null)
-        .gte('expiry_date', todayStr)
+        .gte('expiry_date', pastDateStr)
         .lte('expiry_date', futureDateStr);
 
     final pantryItems = (pantryResponse as List)
@@ -159,39 +161,42 @@ class ExpiryAlertController {
     return alerts.length;
   }
 
-  /// Get alerts grouped by date category (today, yesterday, older)
+  /// Get alerts grouped by urgency category (expired, today, upcoming)
   Future<Map<String, List<ExpiryAlert>>> getAlertsGroupedByDate() async {
     final allAlerts = await getAllAlerts();
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
 
     final grouped = <String, List<ExpiryAlert>>{
-      'today': [],
-      'yesterday': [],
-      'older': [],
+      'today': [], // Hết hạn hôm nay
+      'yesterday': [], // Đã hết hạn (trước hôm nay)
+      'older': [], // Sắp hết hạn (sau hôm nay)
     };
 
     for (final alert in allAlerts) {
-      if (alert.createdAt == null) {
-        grouped['older']!.add(alert);
-        continue;
-      }
-
-      final alertDate = DateTime(
-        alert.createdAt!.year,
-        alert.createdAt!.month,
-        alert.createdAt!.day,
+      final alertDate = alert.alertDate;
+      final alertDateOnly = DateTime(
+        alertDate.year,
+        alertDate.month,
+        alertDate.day,
       );
 
-      if (alertDate == today) {
-        grouped['today']!.add(alert);
-      } else if (alertDate == yesterday) {
+      if (alertDateOnly.isBefore(today)) {
+        // Đã hết hạn
         grouped['yesterday']!.add(alert);
+      } else if (alertDateOnly.isAtSameMomentAs(today)) {
+        // Hết hạn hôm nay
+        grouped['today']!.add(alert);
       } else {
+        // Sắp hết hạn (trong tương lai)
         grouped['older']!.add(alert);
       }
+    }
+
+    // Sắp xếp theo ngày hết hạn
+    for (final key in grouped.keys) {
+      grouped[key]!.sort((a, b) => a.alertDate.compareTo(b.alertDate));
     }
 
     return grouped;
