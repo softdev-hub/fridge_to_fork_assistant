@@ -5,7 +5,7 @@ import 'recipe_card_list.dart';
 import '../recipe_detail_view.dart';
 
 class RecipeCardItem extends StatelessWidget {
-  final Recipe recipe;
+  final RecipeCardModel recipe;
 
   const RecipeCardItem({Key? key, required this.recipe}) : super(key: key);
 

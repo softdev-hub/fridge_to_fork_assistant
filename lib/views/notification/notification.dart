@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fridge_to_fork_assistant/controllers/expiry_alert_controller.dart';
 import 'package:fridge_to_fork_assistant/models/expiry_alert.dart';
 import 'package:fridge_to_fork_assistant/views/pantry/detail_pantry.dart';
+import 'package:fridge_to_fork_assistant/utils/navigation_utils.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -68,6 +69,13 @@ class _NotificationPageState extends State<NotificationPage> {
         ),
       );
     }
+  }
+
+  void _navigateToRecipesWithIngredient(ExpiryAlert alert) {
+    NavigationUtils.navigateToRecipesWithIngredient(
+      context,
+      alert.ingredientName,
+    );
   }
 
   @override
@@ -287,7 +295,9 @@ class _NotificationPageState extends State<NotificationPage> {
       ),
       time: alert.timeAgo,
       actionText: isExpired ? 'Xem chi tiết' : 'Sử dụng ngay',
-      onAction: () => _navigateToPantryDetail(alert),
+      onAction: () => isExpired
+          ? _navigateToPantryDetail(alert)
+          : _navigateToRecipesWithIngredient(alert),
       isDark: isDark,
       isOld: isOld,
     );

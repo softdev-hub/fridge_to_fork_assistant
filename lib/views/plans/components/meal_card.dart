@@ -5,12 +5,14 @@ class MealCard extends StatelessWidget {
   final MealType mealType;
   final List<Meal> meals; // có thể rỗng hoặc nhiều món
   final VoidCallback? onTap;
+  final Function(Meal)? onRemoveMeal; // Thêm callback để xoá món
 
   const MealCard({
     Key? key,
     required this.mealType,
     this.meals = const [],
     this.onTap,
+    this.onRemoveMeal,
   }) : super(key: key);
 
   @override

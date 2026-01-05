@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
-import '../recipe_matching_view.dart';
+import '../../../controllers/recipe_suggestion_filters.dart';
 
 /// Validation-focused filter dialog with red-stroked controls and alert banner.
 class RecipeFiltersValidationView extends StatefulWidget {
-  const RecipeFiltersValidationView({super.key});
+  const RecipeFiltersValidationView({super.key, this.initial});
 
-  static Future<void> show(BuildContext context) async {
-    await showDialog(
+  final RecipeFilterOptions? initial;
+
+  static Future<void> show(
+    BuildContext context, {
+    RecipeFilterOptions? initial,
+  }) async {
+    await showDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.5),
-      builder: (_) => const RecipeFiltersValidationView(),
+      builder: (_) => RecipeFiltersValidationView(initial: initial),
     );
   }
 
@@ -30,9 +35,17 @@ class _RecipeFiltersValidationViewState
   static const _grayBg = Color(0xFFF3F4F6);
   static const _grayBorder = Color(0xFFD1D5DB);
 
-  String _selectedTime = '';
-  final Set<String> _selectedMeals = {};
-  final Set<String> _selectedCuisines = {};
+  late String _selectedTime;
+  late Set<String> _selectedMeals;
+  late Set<String> _selectedCuisines;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTime = widget.initial?.timeKey ?? '';
+    _selectedMeals = Set<String>.from(widget.initial?.mealLabels ?? {});
+    _selectedCuisines = Set<String>.from(widget.initial?.cuisineLabels ?? {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -429,25 +442,8 @@ class _RecipeFiltersValidationViewState
   }
 
   void _onApply() {
-    final isComplete =
-        _selectedTime.isNotEmpty &&
-        _selectedMeals.isNotEmpty &&
-        _selectedCuisines.isNotEmpty;
-
-    if (!isComplete) {
-      setState(() {
-        _selectedTime = '';
-        _selectedMeals.clear();
-        _selectedCuisines.clear();
-      });
-      return;
-    }
-
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
-    navigator.push(
-      MaterialPageRoute(builder: (_) => const RecipeMatchingView()),
-    );
+    // Validation view is now informational; closes when user taps apply.
+    Navigator.of(context, rootNavigator: true).pop();
   }
 
   String _buildSummaryText() {

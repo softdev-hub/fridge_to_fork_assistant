@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-import '../recipe_matching_view.dart';
-import 'recipe_filters_validation_view.dart';
+import '../../../controllers/recipe_suggestion_filters.dart';
 
 /// Default recipe filters dialog with neutral styling.
 class RecipeFiltersDefaultView extends StatefulWidget {
-  const RecipeFiltersDefaultView({super.key});
+  const RecipeFiltersDefaultView({super.key, this.initial});
 
-  static Future<void> show(BuildContext context) async {
-    await showDialog(
+  final RecipeFilterOptions? initial;
+
+  static Future<RecipeFilterOptions?> show(
+    BuildContext context, {
+    RecipeFilterOptions? initial,
+  }) async {
+    return showDialog<RecipeFilterOptions>(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (_) => const RecipeFiltersDefaultView(),
+      builder: (_) => RecipeFiltersDefaultView(initial: initial),
     );
   }
 
@@ -27,9 +31,17 @@ class _RecipeFiltersDefaultViewState extends State<RecipeFiltersDefaultView> {
   static const _grayBorder = Color(0xFFD1D5DB);
   static const _grayBg = Color(0xFFF3F4F6);
 
-  String _selectedTime = '';
-  final Set<String> _selectedMeals = {};
-  final Set<String> _selectedCuisines = {};
+  late String _selectedTime;
+  late Set<String> _selectedMeals;
+  late Set<String> _selectedCuisines;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTime = widget.initial?.timeKey ?? '';
+    _selectedMeals = Set<String>.from(widget.initial?.mealLabels ?? {});
+    _selectedCuisines = Set<String>.from(widget.initial?.cuisineLabels ?? {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -411,22 +423,13 @@ class _RecipeFiltersDefaultViewState extends State<RecipeFiltersDefaultView> {
     });
   }
 
-  void _onApply() {
-    final isComplete =
-        _selectedTime.isNotEmpty &&
-        _selectedMeals.isNotEmpty &&
-        _selectedCuisines.isNotEmpty;
-
-    if (!isComplete) {
-      RecipeFiltersValidationView.show(context);
-      return;
-    }
-
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
-    navigator.push(
-      MaterialPageRoute(builder: (_) => const RecipeMatchingView()),
+  Future<void> _onApply() async {
+    final options = RecipeFilterOptions.fromSelections(
+      selectedTime: _selectedTime,
+      selectedMeals: _selectedMeals,
+      selectedCuisines: _selectedCuisines,
     );
+    Navigator.of(context, rootNavigator: true).pop(options);
   }
 
   String _buildSummaryText() {

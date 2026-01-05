@@ -74,15 +74,15 @@ class MealPlanService {
 
     final mealPlan = MealPlan.fromJson(upsertMealPlan);
 
-    // 2. Thêm recipe vào meal_plan_recipes
+    // 2. Thêm recipe vào meal_plan_recipes (tránh lỗi trùng bằng upsert)
     final insertResponse = await _supabase
         .from('meal_plan_recipes')
-        .insert({
+        .upsert({
           'meal_plan_id': mealPlan.mealPlanId,
           'recipe_id': recipeId,
           'servings': servings,
           'position': position,
-        })
+        }, onConflict: 'meal_plan_id,recipe_id')
         .select()
         .single();
 
@@ -94,11 +94,32 @@ class MealPlanService {
     required int mealPlanId,
     required int recipeId,
   }) async {
+    // 1. Xoá recipe khỏi meal_plan_recipes
     await _supabase
         .from('meal_plan_recipes')
         .delete()
         .eq('meal_plan_id', mealPlanId)
         .eq('recipe_id', recipeId);
+
+    // 2. Kiểm tra xem meal plan còn recipes nào không
+    final remainingRecipes = await _supabase
+        .from('meal_plan_recipes')
+        .select('recipe_id')
+        .eq('meal_plan_id', mealPlanId);
+
+    // 3. Nếu không còn recipes nào, xoá luôn meal plan
+    if (remainingRecipes.isEmpty) {
+      await _supabase
+          .from('meal_plans')
+          .delete()
+          .eq('meal_plan_id', mealPlanId);
+
+      print('✅ Deleted empty meal plan $mealPlanId');
+    } else {
+      print(
+        '✅ Meal plan $mealPlanId still has ${remainingRecipes.length} recipes',
+      );
+    }
   }
 
   String _formatDate(DateTime date) =>
