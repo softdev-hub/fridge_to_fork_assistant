@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../controllers/recipe_suggestion_controller.dart';
 import '../../../controllers/recipe_suggestion_filters.dart';
-import '../../../models/enums.dart';
-import '../../../models/recipe_ingredient.dart';
+import '../../../services/recipe_service.dart';
+import '../../../services/shared_recipe_service.dart';
 import 'recipe_card_list.dart';
 import 'recipe_matching_filter_bar.dart';
 
@@ -16,7 +15,6 @@ class RecipeListScreen extends StatefulWidget {
 }
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
-  final RecipeSuggestionController _controller = RecipeSuggestionController();
   late Future<_RecipeScreenData> _future;
   RecipeFilterOptions _filters = const RecipeFilterOptions(
     timeKey: '',
@@ -41,89 +39,16 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       );
     }
 
-    final suggestions = await _controller.getSuggestedRecipes(
-      callAiAdvisor: false, // tránh phụ thuộc edge function khi demo
-      seedIfEmpty: false, // dùng dữ liệu thật của user đang đăng nhập
-      checkQuantity: false, // nới lỏng để vẫn hiển thị gần đủ khi thiếu lượng
+    final cards = await RecipeService.instance.loadRecipeCards(
+      filters: _filters,
     );
-    final filtered = RecipeSuggestionFilters.applyToSuggestions(
-      suggestions,
-      _filters,
-      lenientMissing: true,
-    );
-    final cards = filtered.map(_mapToCardModel).toList();
     final fullCount = cards.where((c) => c.matchType == MatchType.full).length;
+
+    // Cập nhật available recipes trong SharedRecipeService
+    SharedRecipeService().setLastAppliedFilters(_filters);
+    SharedRecipeService().updateAvailableRecipes(cards);
+
     return _RecipeScreenData(recipes: cards, fullCount: fullCount);
-  }
-
-  RecipeCardModel _mapToCardModel(RecipeSuggestion suggestion) {
-    final recipe = suggestion.recipe;
-    final available =
-        suggestion.match.availableIngredients ??
-        suggestion.matchedIngredients.length;
-    final total =
-        suggestion.match.totalIngredients ??
-        (suggestion.matchedIngredients.length +
-            suggestion.missingIngredients.length);
-    final missing =
-        suggestion.match.missingIngredients ??
-        suggestion.missingIngredients.length;
-
-    RecipeDifficulty _diff(RecipeDifficultyEnum? d) {
-      switch (d) {
-        case RecipeDifficultyEnum.medium:
-          return RecipeDifficulty.medium;
-        case RecipeDifficultyEnum.hard:
-          return RecipeDifficulty.hard;
-        case RecipeDifficultyEnum.easy:
-        case null:
-          return RecipeDifficulty.easy;
-      }
-    }
-
-    RecipeMealTime _meal(MealTypeEnum? m) {
-      switch (m) {
-        case MealTypeEnum.lunch:
-          return RecipeMealTime.lunch;
-        case MealTypeEnum.dinner:
-          return RecipeMealTime.dinner;
-        case MealTypeEnum.breakfast:
-        case null:
-          return RecipeMealTime.breakfast;
-      }
-    }
-
-    String _timeLabel(int? minutes) {
-      if (minutes == null || minutes <= 0) return 'Không rõ thời gian';
-      return '$minutes phút';
-    }
-
-    String _ingredientName(RecipeIngredient ri) =>
-        ri.ingredient?.name ?? 'Nguyên liệu #${ri.ingredientId}';
-
-    final availableNames = suggestion.matchedIngredients
-        .map(_ingredientName)
-        .toList();
-    final missingNames = suggestion.missingIngredients
-        .map(_ingredientName)
-        .toList();
-
-    return RecipeCardModel(
-      recipeId: recipe.recipeId,
-      name: recipe.title,
-      timeLabel: _timeLabel(recipe.cookingTimeMinutes),
-      difficulty: _diff(recipe.difficulty),
-      mealTime: _meal(recipe.mealType),
-      matchType: missing <= 0 ? MatchType.full : MatchType.partial,
-      availableIngredients: available,
-      totalIngredients: total,
-      missingCount: missing,
-      expiringCount: 0,
-      isExpiring: false,
-      availableNames: availableNames,
-      missingNames: missingNames,
-      instructions: recipe.instructions,
-    );
   }
 
   @override
@@ -165,6 +90,24 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
 
                   final data = snapshot.data;
                   final recipes = data?.recipes ?? [];
+
+                  // Cập nhật available recipes trong SharedRecipeService
+                  if (recipes.isNotEmpty) {
+                    print(
+                      '🔄 Cập nhật ${recipes.length} recipes vào SharedRecipeService',
+                    );
+                    for (var recipe in recipes) {
+                      print(
+                        '   Recipe: ${recipe.name}, Missing: ${recipe.missingNames}',
+                      );
+                    }
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      SharedRecipeService().setLastAppliedFilters(_filters);
+                      SharedRecipeService().updateAvailableRecipes(recipes);
+                    });
+                  } else {
+                    print('⚠️ Không có recipes để cập nhật');
+                  }
 
                   if (data?.authRequired == true) {
                     return const _AuthRequiredState();
