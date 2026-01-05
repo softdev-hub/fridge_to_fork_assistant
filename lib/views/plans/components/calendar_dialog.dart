@@ -152,6 +152,7 @@ class _CalendarDialogState extends State<CalendarDialog> {
         setState(() {
           _selectedDate = cellDate;
         });
+        widget.onDateSelected?.call(cellDate);
       },
       child: Container(
         height: 40,

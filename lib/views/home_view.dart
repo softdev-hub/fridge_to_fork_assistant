@@ -15,7 +15,8 @@ import '../controllers/pantry_item_controller.dart';
 import '../utils/date_utils.dart' as app_date_utils;
 
 class HomeView extends StatefulWidget {
-  const HomeView({super.key});
+  final int initialIndex;
+  const HomeView({super.key, this.initialIndex = 0});
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -23,7 +24,14 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final authService = AuthService();
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+  final GlobalKey<PlanViewState> _planViewKey = GlobalKey<PlanViewState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   void logout() async {
     await authService.signOut();
@@ -31,6 +39,9 @@ class _HomeViewState extends State<HomeView> {
 
   void _switchTab(int index) {
     setState(() => _selectedIndex = index);
+    if (index == 3) {
+      _planViewKey.currentState?.forceRefresh();
+    }
   }
 
   @override
@@ -39,7 +50,7 @@ class _HomeViewState extends State<HomeView> {
       _HomeContent(onTabChange: _switchTab),
       const PantryView(),
       const RecipeTabNavigator(),
-      const PlanView(),
+      PlanView(key: _planViewKey),
       const RecipeMatchingView(),
     ];
 
@@ -47,7 +58,7 @@ class _HomeViewState extends State<HomeView> {
       body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        onTap: _switchTab,
       ),
     );
   }
@@ -369,7 +380,7 @@ class _HomeContentState extends State<_HomeContent> {
               mainAxisSpacing: 12,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 2.3,
+              childAspectRatio: 2.15,
               children: _expiringItems.map((item) {
                 final daysLeft = app_date_utils.DateUtils.daysUntil(
                   item.expiryDate,

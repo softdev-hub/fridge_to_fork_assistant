@@ -44,13 +44,10 @@ class MealGrid extends StatelessWidget {
           child: GestureDetector(
             onTap: () {
               if (onDaySelected != null) {
-                // Calculate the actual date based on the day of month
+                // Tính đúng ngày theo tuần hiện tại (weekStart + index)
                 final now = DateTime.now();
-                final selectedDate = DateTime(
-                  now.year,
-                  now.month,
-                  day.dayOfMonth,
-                );
+                final weekStart = now.subtract(Duration(days: now.weekday - 1));
+                final selectedDate = weekStart.add(Duration(days: index));
                 onDaySelected!(day, selectedDate);
               }
             },

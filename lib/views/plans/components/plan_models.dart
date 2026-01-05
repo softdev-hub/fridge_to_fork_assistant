@@ -19,7 +19,15 @@ class Meal {
   final String name;
   final String imageUrl;
 
-  const Meal({this.recipeId, required this.name, required this.imageUrl});
+  /// ID của meal_plan chứa recipe này (nullable cho dữ liệu dummy/không từ DB).
+  final int? mealPlanId;
+
+  const Meal({
+    this.recipeId,
+    required this.name,
+    required this.imageUrl,
+    this.mealPlanId,
+  });
 }
 
 /// Một ô bữa ăn trong ngày.
@@ -35,6 +43,10 @@ class MealSlot {
 
   MealSlot addMeal(Meal meal) {
     return MealSlot(type: type, meals: [...meals, meal]);
+  }
+
+  MealSlot copyWith({MealType? type, List<Meal>? meals}) {
+    return MealSlot(type: type ?? this.type, meals: meals ?? this.meals);
   }
 }
 

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'components/recipe_card_list.dart';
-import '../plans/plan_view.dart';
 import '../../models/recipe_ingredient.dart';
 import '../../models/ingredient.dart';
 import '../../models/enums.dart';
+import '../../services/shared_recipe_service.dart';
+import '../home_view.dart';
 
 class RecipeDetailView extends StatefulWidget {
   final RecipeCardModel recipe;
@@ -24,17 +25,49 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   Future<void> _loadMissingIngredients() async {
-    // Tạo dummy missing ingredients dựa trên missingCount của recipe
-    if (widget.recipe.missingCount != null && widget.recipe.missingCount! > 0) {
+    // Sử dụng real missing ingredients từ database
+    if (widget.recipe.missingNames.isNotEmpty) {
+      _missingIngredientEntities = _createMissingIngredientsFromNames(
+        widget.recipe.missingNames,
+      );
+      print(
+        '📝 Sử dụng real missing ingredients: ${widget.recipe.missingNames}',
+      );
+    } else if (widget.recipe.missingCount != null &&
+        widget.recipe.missingCount! > 0) {
+      // Fallback: tạo dummy nếu không có real data
       _missingIngredientEntities = _createDummyMissingIngredients(
         widget.recipe.missingCount!,
+      );
+      print(
+        '📝 Fallback: sử dụng dummy missing ingredients, count: ${widget.recipe.missingCount}',
       );
     }
 
     setState(() {});
   }
 
-  // Tạo dummy missing ingredients cho testing
+  // Tạo missing ingredients từ tên thật (real data)
+  List<RecipeIngredient> _createMissingIngredientsFromNames(
+    List<String> names,
+  ) {
+    return List.generate(
+      names.length,
+      (index) => RecipeIngredient(
+        recipeId: widget.recipe.recipeId ?? 0,
+        ingredientId: index + 1000, // Use high ID to avoid conflicts
+        quantity: 1.0,
+        unit: UnitEnum.cai, // Default unit
+        ingredient: Ingredient(
+          ingredientId: index + 1000,
+          name: names[index],
+          category: 'missing',
+        ),
+      ),
+    );
+  }
+
+  // Tạo dummy missing ingredients cho testing (fallback)
   List<RecipeIngredient> _createDummyMissingIngredients(int count) {
     final dummyIngredients = [
       'Hành tây',
@@ -249,8 +282,19 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PlanView()),
+                      // Đặt recipe vào shared service
+                      SharedRecipeService().setSelectedRecipe(
+                        widget.recipe,
+                        fromTab: true,
+                      );
+
+                      // Navigate đến HomeView và chuyển sang tab PlanView (index 3)
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const HomeView(initialIndex: 3), // Go to Plan tab
+                        ),
+                        (route) => false,
                       );
                     },
                     style: ElevatedButton.styleFrom(
