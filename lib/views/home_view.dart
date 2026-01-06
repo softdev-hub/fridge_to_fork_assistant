@@ -11,7 +11,10 @@ import 'package:fridge_to_fork_assistant/views/auth/login_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile.dart';
 import '../models/pantry_item.dart';
+import '../models/recipe.dart';
+import '../models/user_recipe_matches.dart';
 import '../controllers/pantry_item_controller.dart';
+import '../controllers/recipe_suggestion_controller.dart';
 import '../utils/date_utils.dart' as app_date_utils;
 
 class HomeView extends StatefulWidget {
@@ -79,6 +82,8 @@ class _HomeContentState extends State<_HomeContent> {
 
   Profile? _profile;
   List<PantryItem> _expiringItems = [];
+  List<Map<String, dynamic>> _todayMeals = []; // Meal plans for today
+  List<RecipeSuggestion> _suggestedRecipes = []; // Recipe suggestions
   bool _isLoading = true;
 
   @override
@@ -91,6 +96,7 @@ class _HomeContentState extends State<_HomeContent> {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId != null) {
+        // Load profile
         final profileData = await _supabase
             .from('profiles')
             .select()
@@ -99,10 +105,16 @@ class _HomeContentState extends State<_HomeContent> {
         if (profileData != null) {
           _profile = Profile.fromJson(profileData);
         }
+
+        // Load today's meal plans
+        await _loadTodayMeals(userId);
+
+        // Load recipe suggestions
+        await _loadRecipeSuggestions();
       }
 
+      // Load expiring items
       final items = await _pantryController.getExpiringItems(days: 7);
-      // Filter out already expired items (only show items expiring soon, not expired)
       final notExpiredItems = items.where((item) => !item.isExpired).toList();
       notExpiredItems.sort((a, b) {
         if (a.expiryDate == null && b.expiryDate == null) return 0;
@@ -117,6 +129,118 @@ class _HomeContentState extends State<_HomeContent> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadTodayMeals(String userId) async {
+    try {
+      final today = DateTime.now();
+      final dateStr =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      // Get meal plans for today
+      final mealPlansResponse = await _supabase
+          .from('meal_plans')
+          .select('meal_plan_id, meal_type')
+          .eq('profile_id', userId)
+          .eq('planned_date', dateStr);
+
+      final mealPlans = mealPlansResponse as List;
+      final List<Map<String, dynamic>> meals = [];
+
+      for (final plan in mealPlans) {
+        final mealPlanId = plan['meal_plan_id'];
+        final mealType = plan['meal_type'] as String;
+
+        // Get recipes for this meal plan
+        final recipesResponse = await _supabase
+            .from('meal_plan_recipes')
+            .select('recipe_id, recipes(recipe_id, title, image_url)')
+            .eq('meal_plan_id', mealPlanId);
+
+        for (final recipeData in recipesResponse) {
+          final recipe = recipeData['recipes'];
+          if (recipe != null) {
+            meals.add({
+              'mealType': mealType,
+              'title': recipe['title'],
+              'imageUrl': recipe['image_url'],
+              'recipeId': recipe['recipe_id'],
+            });
+          }
+        }
+      }
+
+      _todayMeals = meals;
+    } catch (e) {
+      print('Error loading today meals: $e');
+      _todayMeals = [];
+    }
+  }
+
+  Future<void> _loadRecipeSuggestions() async {
+    try {
+      final controller = RecipeSuggestionController();
+      final suggestions = await controller.getSuggestedRecipes(
+        callAiAdvisor: false,
+        seedIfEmpty: false,
+        checkQuantity: false,
+        autoGenerateFromPantry: true,
+        maxMissingForFlexible: 10, // Rộng rãi hơn
+        minCoverageForFlexible: 0.0,
+      );
+      print('🍳 Recipe suggestions loaded: ${suggestions.length}');
+
+      if (suggestions.isNotEmpty) {
+        _suggestedRecipes = suggestions.take(2).toList();
+      } else {
+        // Fallback: Lấy trực tiếp recipes từ database nếu không có gợi ý
+        await _loadFallbackRecipes();
+      }
+    } catch (e) {
+      print('Error loading recipe suggestions: $e');
+      // Try fallback
+      await _loadFallbackRecipes();
+    }
+  }
+
+  Future<void> _loadFallbackRecipes() async {
+    try {
+      // Lấy trực tiếp các công thức từ database
+      final recipesResponse = await _supabase
+          .from('recipes')
+          .select('*, recipe_ingredients(*, ingredients(*))')
+          .isFilter('deleted_at', null)
+          .order('created_at', ascending: false)
+          .limit(2);
+
+      final List<RecipeSuggestion> fallbackSuggestions = [];
+      for (final recipeJson in recipesResponse) {
+        final recipe = Recipe.fromJson(recipeJson);
+        if (recipe.recipeId == null) continue;
+
+        fallbackSuggestions.add(
+          RecipeSuggestion(
+            recipe: recipe,
+            match: UserRecipeMatch(
+              profileId: _supabase.auth.currentUser?.id ?? '',
+              recipeId: recipe.recipeId!,
+              totalIngredients: recipe.ingredients?.length ?? 0,
+              availableIngredients: 0,
+              missingIngredients: recipe.ingredients?.length ?? 0,
+            ),
+            matchedIngredients: [],
+            missingIngredients: recipe.ingredients ?? [],
+            coverage: 0.0,
+          ),
+        );
+      }
+
+      print('🍳 Fallback recipes loaded: ${fallbackSuggestions.length}');
+      _suggestedRecipes = fallbackSuggestions;
+    } catch (e) {
+      print('Error loading fallback recipes: $e');
+      _suggestedRecipes = [];
     }
   }
 
@@ -380,7 +504,7 @@ class _HomeContentState extends State<_HomeContent> {
               mainAxisSpacing: 12,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 2.15,
+              childAspectRatio: 2.0, // Giảm từ 2.15 để fix overflow
               children: _expiringItems.map((item) {
                 final daysLeft = app_date_utils.DateUtils.daysUntil(
                   item.expiryDate,
@@ -476,6 +600,44 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   Widget _buildPlanSection(bool isDark) {
+    // Get meal type label based on meal type from database
+    String getMealTypeLabelFromType(String? mealType) {
+      switch (mealType) {
+        case 'breakfast':
+          return 'Bữa sáng';
+        case 'lunch':
+          return 'Bữa trưa';
+        case 'dinner':
+          return 'Bữa tối';
+        default:
+          return 'Bữa ăn';
+      }
+    }
+
+    // Get current meal type based on time
+    String getCurrentMealType() {
+      final hour = DateTime.now().hour;
+      if (hour < 10) return 'breakfast';
+      if (hour < 14) return 'lunch';
+      return 'dinner';
+    }
+
+    // Find the next meal for today
+    final currentMealType = getCurrentMealType();
+    Map<String, dynamic>? nextMeal;
+
+    // Priority: current meal type, then later meals
+    for (final meal in _todayMeals) {
+      if (meal['mealType'] == currentMealType) {
+        nextMeal = meal;
+        break;
+      }
+    }
+    // If no current meal, get any meal for today
+    if (nextMeal == null && _todayMeals.isNotEmpty) {
+      nextMeal = _todayMeals.first;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -503,43 +665,99 @@ class _HomeContentState extends State<_HomeContent> {
           ),
           child: Column(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tối nay',
-                          style: TextStyle(
-                            color: isDark ? Colors.grey[400] : Colors.grey[500],
-                            fontSize: 14,
+              if (nextMeal != null) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            getMealTypeLabelFromType(nextMeal['mealType']),
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[500],
+                              fontSize: 14,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Gà nướng mật ong',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: isDark ? Colors.grey[100] : Colors.grey[800],
+                          const SizedBox(height: 4),
+                          Text(
+                            nextMeal['title'] ?? 'Công thức',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: isDark
+                                  ? Colors.grey[100]
+                                  : Colors.grey[800],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: nextMeal['imageUrl'] != null
+                          ? Image.network(
+                              nextMeal['imageUrl'],
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 64,
+                                height: 64,
+                                color: isDark
+                                    ? Colors.grey[700]
+                                    : Colors.grey[200],
+                                child: Icon(
+                                  Icons.restaurant,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.grey[700]
+                                    : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.restaurant,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                // No meals planned for today
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: isDark ? Colors.grey[400] : Colors.grey[500],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Chưa có kế hoạch cho hôm nay',
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[500],
+                          fontSize: 15,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      'https://picsum.photos/id/5/200/200',
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.only(top: 16),
@@ -557,7 +775,7 @@ class _HomeContentState extends State<_HomeContent> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Danh sách mua sắm',
+                          'Bữa ăn hôm nay',
                           style: TextStyle(
                             color: isDark ? Colors.grey[400] : Colors.grey[500],
                             fontSize: 13,
@@ -565,7 +783,9 @@ class _HomeContentState extends State<_HomeContent> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Bạn cần mua 5 món',
+                          _todayMeals.isEmpty
+                              ? 'Chưa có món nào'
+                              : 'Có ${_todayMeals.length} món đã lên kế hoạch',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: isDark ? Colors.grey[100] : Colors.grey[800],
@@ -574,7 +794,7 @@ class _HomeContentState extends State<_HomeContent> {
                       ],
                     ),
                     Icon(
-                      Icons.shopping_cart,
+                      Icons.restaurant_menu,
                       color: const Color(0xFF4CAF50),
                       size: 28,
                     ),
@@ -648,58 +868,59 @@ class _HomeContentState extends State<_HomeContent> {
         ),
         const SizedBox(height: 12),
 
-        // Test button for ingredient filter functionality
-        Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: ElevatedButton(
-            onPressed: () {
-              // Simulate clicking on a carrot notification
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RecipeMatchingView(
-                    initialIngredientFilter: 'cà rốt',
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange[400],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+        // Show dynamic recipe suggestions or fallback message
+        if (_suggestedRecipes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[800] : Colors.white,
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               children: [
-                Icon(Icons.eco, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Test: Món từ Cà rốt',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Icon(
+                  Icons.restaurant,
+                  color: isDark ? Colors.grey[400] : Colors.grey[500],
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Thêm nguyên liệu vào tủ lạnh để nhận gợi ý công thức!',
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
+          )
+        else
+          ..._suggestedRecipes.asMap().entries.map((entry) {
+            final index = entry.key;
+            final suggestion = entry.value;
+            final recipe = suggestion.recipe;
+            final available = suggestion.matchedIngredients.length;
+            final total = available + suggestion.missingIngredients.length;
+            final timeLabel = recipe.cookingTimeMinutes != null
+                ? '${recipe.cookingTimeMinutes} phút'
+                : 'Không rõ';
+            final ingredientLabel = 'Có $available/$total nguyên liệu';
 
-        _buildRecipeCard(
-          'Phở Bò Hà Nội',
-          '45 phút',
-          'Có 4/6 nguyên liệu',
-          'https://picsum.photos/id/6/400/200',
-          isDark,
-        ),
-        const SizedBox(height: 16),
-        _buildRecipeCard(
-          'Bò Lúc Lắc',
-          '30 phút',
-          'Có 5/7 nguyên liệu',
-          'https://picsum.photos/id/7/400/200',
-          isDark,
-        ),
+            return Column(
+              children: [
+                if (index > 0) const SizedBox(height: 16),
+                _buildRecipeCard(
+                  recipe.title,
+                  timeLabel,
+                  ingredientLabel,
+                  recipe.imageUrl ?? 'https://via.placeholder.com/400x200',
+                  isDark,
+                ),
+              ],
+            );
+          }),
       ],
     );
   }

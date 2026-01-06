@@ -119,21 +119,29 @@ class _NotificationPageState extends State<NotificationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_groupedAlerts['today']!.isNotEmpty) ...[
-              _buildSection('Hôm nay', _groupedAlerts['today']!, isDark),
-              const SizedBox(height: 20),
-            ],
+            // Đã hết hạn (khẩn cấp nhất)
             if (_groupedAlerts['yesterday']!.isNotEmpty) ...[
-              _buildSection('Hôm qua', _groupedAlerts['yesterday']!, isDark),
+              _buildSection(
+                'Đã hết hạn',
+                _groupedAlerts['yesterday']!,
+                isDark,
+                isUrgent: true,
+              ),
               const SizedBox(height: 20),
             ],
-            if (_groupedAlerts['older']!.isNotEmpty)
+            // Hết hạn hôm nay
+            if (_groupedAlerts['today']!.isNotEmpty) ...[
               _buildSection(
-                'Cũ hơn',
-                _groupedAlerts['older']!,
+                'Hết hạn hôm nay',
+                _groupedAlerts['today']!,
                 isDark,
-                isOld: true,
+                isUrgent: true,
               ),
+              const SizedBox(height: 20),
+            ],
+            // Sắp hết hạn
+            if (_groupedAlerts['older']!.isNotEmpty)
+              _buildSection('Sắp hết hạn', _groupedAlerts['older']!, isDark),
           ],
         ),
       ),
@@ -204,31 +212,45 @@ class _NotificationPageState extends State<NotificationPage> {
     String title,
     List<ExpiryAlert> alerts,
     bool isDark, {
-    bool isOld = false,
+    bool isUrgent = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.grey[100] : Colors.grey[800],
-          ),
+        Row(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isUrgent
+                    ? (isDark ? Colors.red[400] : Colors.red[600])
+                    : (isDark ? Colors.grey[100] : Colors.grey[800]),
+              ),
+            ),
+            if (isUrgent) ...[
+              const SizedBox(width: 8),
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 20,
+                color: isDark ? Colors.red[400] : Colors.red[600],
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 12),
         ...alerts.map(
           (alert) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _buildAlertItem(alert, isDark, isOld: isOld),
+            child: _buildAlertItem(alert, isDark),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildAlertItem(ExpiryAlert alert, bool isDark, {bool isOld = false}) {
+  Widget _buildAlertItem(ExpiryAlert alert, bool isDark) {
     final daysUntilExpiry = alert.daysUntilExpiry;
     final isExpired = alert.isExpired;
     final isToday = alert.isToday;
@@ -299,7 +321,6 @@ class _NotificationPageState extends State<NotificationPage> {
           ? _navigateToPantryDetail(alert)
           : _navigateToRecipesWithIngredient(alert),
       isDark: isDark,
-      isOld: isOld,
     );
   }
 }
@@ -313,7 +334,6 @@ class _NotificationItem extends StatelessWidget {
   final String? actionText;
   final VoidCallback? onAction;
   final bool isDark;
-  final bool isOld;
 
   const _NotificationItem({
     required this.icon,
@@ -324,64 +344,60 @@ class _NotificationItem extends StatelessWidget {
     this.actionText,
     this.onAction,
     required this.isDark,
-    this.isOld = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: isOld ? 0.7 : 1.0,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.grey[800] : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  content,
-                  const SizedBox(height: 6),
-                  Text(
-                    time,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[400] : Colors.grey[500],
-                    ),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                content,
+                const SizedBox(height: 6),
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[500],
                   ),
-                  if (actionText != null) ...[
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: onAction,
-                      child: Text(
-                        actionText!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: NotificationPage.primaryColor,
-                        ),
+                ),
+                if (actionText != null) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: onAction,
+                    child: Text(
+                      actionText!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: NotificationPage.primaryColor,
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
