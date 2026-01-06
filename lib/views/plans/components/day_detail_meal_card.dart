@@ -5,12 +5,14 @@ class DayDetailMealCard extends StatelessWidget {
   final MealType? mealType; // Made nullable to hide label for additional meals
   final Meal? meal;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete; // Thêm callback xoá
 
   const DayDetailMealCard({
     Key? key,
     this.mealType, // Made optional
     this.meal,
     this.onTap,
+    this.onDelete, // Thêm parameter xoá
   }) : super(key: key);
 
   @override
@@ -86,8 +88,19 @@ class DayDetailMealCard extends StatelessWidget {
             ),
           ),
 
-          // Delete icon
-          const Icon(Icons.delete_outline, size: 20, color: Color(0xFFD1D5DB)),
+          // Delete icon - chỉ hiển thị khi có meal và onDelete callback
+          if (!isEmpty && onDelete != null)
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                child: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Color(0xFFEF4444), // Màu đỏ để dễ nhận biết
+                ),
+              ),
+            ),
         ],
       ),
     );

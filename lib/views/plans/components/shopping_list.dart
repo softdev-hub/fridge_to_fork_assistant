@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../services/shopping_list_service.dart';
+import '../../../models/enums.dart';
+import '../../../models/shopping_list_items.dart';
 
 class ShoppingItem {
   String name;
@@ -9,6 +13,16 @@ class ShoppingItem {
   ShoppingItem(this.name, this.quantity, this.sources, this.isChecked);
 }
 
+class _AutoAgg {
+  _AutoAgg({required this.ingredientName, required this.unit});
+
+  final String ingredientName;
+  final UnitEnum unit;
+  double quantity = 0;
+  bool allPurchased = true;
+  final Set<String> sources = <String>{};
+}
+
 class ShoppingListSection extends StatefulWidget {
   const ShoppingListSection({super.key});
 
@@ -17,28 +31,123 @@ class ShoppingListSection extends StatefulWidget {
 }
 
 class _ShoppingListSectionState extends State<ShoppingListSection> {
-  List<ShoppingItem> items = [
-    ShoppingItem(
-      'Hành lá',
-      '4 nhánh',
-      'Từ: Phở bò (2 nhánh), Bún thịt nướng (2 nhánh)',
-      false,
-    ),
-    ShoppingItem('Gừng', '50g', 'Từ: Phở bò (30g), Chả cá (20g)', false),
-    ShoppingItem(
-      'Hành tây',
-      '2 củ',
-      'Từ: Bò lúc lắc (1 củ), Salad (1 củ)',
-      false,
-    ),
-    ShoppingItem('Sữa tươi', '500ml', 'Từ: Bánh flan (500ml)', true),
-    ShoppingItem(
-      'Tỏi',
-      '3 củ',
-      'Từ: Phở bò (1 củ), Bún thịt nướng (1 củ), Chả cá (1 củ)',
-      false,
-    ),
-  ];
+  List<ShoppingItem> items = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShoppingList();
+  }
+
+  /// Public method để refresh shopping list từ bên ngoài
+  void refreshShoppingList() {
+    print('🔄 Shopping list refresh requested');
+    _loadShoppingList();
+  }
+
+  /// Load shopping list từ database
+  Future<void> _loadShoppingList() async {
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        if (mounted) {
+          setState(() {
+            items = [];
+            isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Lấy weekly shopping list cho tuần hiện tại
+      final now = DateTime.now();
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final weeklyList = await ShoppingListService.instance
+          .getOrCreateWeeklyList(profileId: userId, weekStart: weekStart);
+
+      // Lấy items trong weekly list (bao gồm auto + manual)
+      final response = await Supabase.instance.client
+          .from('shopping_list_items')
+          .select('*, ingredients(name), recipes(title)')
+          .eq('list_id', weeklyList.listId!)
+          .order('created_at', ascending: false);
+
+      final dbItems = (response as List)
+          .map(
+            (json) => ShoppingListItem.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+
+      print('🛒 Total shopping list items: ${dbItems.length}');
+
+      final auto = dbItems
+          // Auto-items are ingredient-based (ingredient_id != null).
+          .where((i) => i.ingredientId != null)
+          .toList();
+      final manual = dbItems
+          // Manual items are free-form entries (ingredient_id == null).
+          .where((i) => i.ingredientId == null)
+          .toList();
+
+      // Aggregate auto-items theo ingredientId + unit.
+      final Map<String, _AutoAgg> agg = {};
+      for (final it in auto) {
+        final ingredientName =
+            it.ingredient?.name ?? it.sourceName ?? 'Nguyên liệu';
+        final key = '${it.ingredientId ?? 0}|${it.unit.toDbValue()}';
+        agg.putIfAbsent(
+          key,
+          () => _AutoAgg(ingredientName: ingredientName, unit: it.unit),
+        );
+        agg[key]!.quantity += it.quantity;
+        agg[key]!.allPurchased = agg[key]!.allPurchased && it.isPurchased;
+
+        final recipeTitle = it.recipe?.title;
+        if (recipeTitle != null && recipeTitle.isNotEmpty) {
+          agg[key]!.sources.add(recipeTitle);
+        }
+      }
+
+      final autoItems = agg.values.map((a) {
+        final quantity = '${a.quantity}${a.unit.displayName}';
+        final source = a.sources.isEmpty
+            ? 'Từ công thức'
+            : 'Từ công thức: ${a.sources.join(', ')}';
+        return ShoppingItem(a.ingredientName, quantity, source, a.allPurchased);
+      }).toList();
+
+      final manualItems = manual.map((dbItem) {
+        final name = dbItem.sourceName ?? 'Mục thêm thủ công';
+        final quantity = '${dbItem.quantity}${dbItem.unit.displayName}';
+        final source = dbItem.sourceName ?? 'Thêm thủ công';
+        return ShoppingItem(name, quantity, source, dbItem.isPurchased);
+      }).toList();
+
+      final convertedItems = [...autoItems, ...manualItems];
+
+      if (mounted) {
+        setState(() {
+          items = convertedItems;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading shopping list: $e');
+      if (mounted) {
+        setState(() {
+          items = [];
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +155,11 @@ class _ShoppingListSectionState extends State<ShoppingListSection> {
       children: [
         // Phần danh sách cho phép scroll
         Expanded(
-          child: items.isEmpty
+          child: isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+                )
+              : items.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
                   padding: const EdgeInsets.only(bottom: 16),

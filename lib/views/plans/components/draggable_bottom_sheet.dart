@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:fridge_to_fork_assistant/views/recipes/components/recipe_card_list.dart'; // Import dummyRecipes
+import '../../../services/recipe_service.dart';
 import 'plan_models.dart';
+import '../../../services/shared_recipe_service.dart';
+
+const String _fallbackImage =
+    'https://images.unsplash.com/photo-1548943487-a2e4e43b4858?w=400';
 
 class DraggableBottomSheet extends StatefulWidget {
   const DraggableBottomSheet({Key? key, required this.scrollController})
@@ -14,11 +18,80 @@ class DraggableBottomSheet extends StatefulWidget {
 
 class _RecipeAddFormState extends State<DraggableBottomSheet> {
   final TextEditingController _searchController = TextEditingController();
+  List<Meal> _allMeals = [];
+  List<Meal> _filteredMeals = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Sử dụng dummyRecipes từ trang "Gợi ý món"
+    _loadRecipes();
+    _searchController.addListener(_applySearch);
+  }
+
+  Future<void> _loadRecipes() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final cards = await RecipeService.instance.loadRecipeCards(
+        filters: SharedRecipeService().lastAppliedFilters,
+      );
+
+      final meals = cards
+          .where((c) => c.recipeId != null)
+          .map(
+            (c) => Meal(
+              recipeId: c.recipeId,
+              name: c.name,
+              imageUrl: _fallbackImage,
+            ),
+          )
+          .toList();
+
+      // Nếu có recipe được chọn từ Recipes tab, đặt nó lên đầu (nhưng vẫn dùng
+      // cùng data source để load list).
+      final selectedRecipe = SharedRecipeService().selectedRecipe;
+      List<Meal> ordered = meals;
+      if (selectedRecipe != null && SharedRecipeService().isRecipeFromTab) {
+        final selectedMeal = SharedRecipeService().recipeToMeal(selectedRecipe);
+        ordered = [
+          selectedMeal,
+          ...meals.where((m) => m.recipeId != selectedMeal.recipeId),
+        ];
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _allMeals = ordered;
+        _isLoading = false;
+      });
+
+      _applySearch();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _allMeals = const [];
+        _filteredMeals = const [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _applySearch() {
+    final q = _searchController.text.trim().toLowerCase();
+    if (!mounted) return;
+    setState(() {
+      if (q.isEmpty) {
+        _filteredMeals = List<Meal>.from(_allMeals);
+      } else {
+        _filteredMeals = _allMeals
+            .where((m) => m.name.toLowerCase().contains(q))
+            .toList();
+      }
+    });
   }
 
   @override
@@ -113,25 +186,40 @@ class _RecipeAddFormState extends State<DraggableBottomSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Sử dụng dummyRecipes từ trang "Gợi ý món"
-              Column(
-                children: List.generate(dummyRecipes.length, (index) {
-                  final recipe = dummyRecipes[index];
-                  final meal = Meal(
-                    recipeId: recipe.recipeId,
-                    name: recipe.name,
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1548943487-a2e4e43b4858?w=400',
-                  );
-                  return Column(
-                    children: [
-                      _buildRecipeCard(meal),
-                      if (index < dummyRecipes.length - 1)
-                        const SizedBox(height: 12),
-                    ],
-                  );
-                }),
-              ),
+              // Danh sách công thức kéo thả (từ SharedRecipeService)
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_filteredMeals.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Center(
+                    child: Text(
+                      'Không có công thức để hiển thị',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  children: List.generate(_filteredMeals.length, (index) {
+                    final meal = _filteredMeals[index];
+                    return Column(
+                      children: [
+                        _buildRecipeCard(
+                          meal,
+                          isHighlighted:
+                              index == 0 &&
+                              SharedRecipeService().isRecipeFromTab,
+                        ),
+                        if (index < _filteredMeals.length - 1)
+                          const SizedBox(height: 12),
+                      ],
+                    );
+                  }),
+                ),
             ],
           ),
         ),
@@ -139,22 +227,30 @@ class _RecipeAddFormState extends State<DraggableBottomSheet> {
     );
   }
 
-  Widget _buildRecipeCard(Meal meal) {
+  Widget _buildRecipeCard(Meal meal, {bool isHighlighted = false}) {
     return LongPressDraggable<Meal>(
       data: meal,
       feedback: _buildCompressedCard(meal),
       dragAnchorStrategy: pointerDragAnchorStrategy,
-      childWhenDragging: Opacity(opacity: 0.5, child: _buildFullCard(meal)),
-      child: _buildFullCard(meal),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: _buildFullCard(meal, isHighlighted: isHighlighted),
+      ),
+      child: _buildFullCard(meal, isHighlighted: isHighlighted),
     );
   }
 
-  Widget _buildFullCard(Meal meal) {
+  Widget _buildFullCard(Meal meal, {bool isHighlighted = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: isHighlighted
+            ? const Color(0xFFE8F5E9) // Màu xanh nhạt để highlight
+            : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
+        border: isHighlighted
+            ? Border.all(color: const Color(0xFF4CAF50), width: 2)
+            : null,
       ),
       child: Row(
         children: [
@@ -185,13 +281,38 @@ class _RecipeAddFormState extends State<DraggableBottomSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  meal.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      meal.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    if (isHighlighted) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Đã chọn',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Wrap(

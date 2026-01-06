@@ -9,8 +9,8 @@ enum RecipeMealTime { breakfast, lunch, dinner }
 
 enum MatchType { full, partial }
 
-class Recipe {
-  final int? recipeId; // Thêm recipeId để hỗ trợ shopping list
+class RecipeCardModel {
+  final int? recipeId;
   final String name;
   final String timeLabel;
   final RecipeDifficulty difficulty;
@@ -21,9 +21,12 @@ class Recipe {
   final int? missingCount;
   final int? expiringCount;
   final bool isExpiring;
+  final List<String> availableNames;
+  final List<String> missingNames;
+  final String? instructions;
 
-  Recipe({
-    this.recipeId, // Thêm vào constructor
+  RecipeCardModel({
+    this.recipeId,
     required this.name,
     required this.timeLabel,
     required this.difficulty,
@@ -34,68 +37,24 @@ class Recipe {
     this.missingCount,
     this.expiringCount,
     this.isExpiring = false,
+    this.availableNames = const [],
+    this.missingNames = const [],
+    this.instructions,
   });
 }
 
-// Dummy data mô phỏng theo HTML với recipeId để test shopping list
-final List<Recipe> dummyRecipes = [
-  Recipe(
-    recipeId: 1, // Thêm recipeId để test shopping list
-    name: 'Cà ri gà thơm lừng', // Giữ lại name
-    timeLabel: '15 phút',
-    difficulty: RecipeDifficulty.easy,
-    mealTime: RecipeMealTime.dinner,
-    matchType: MatchType.full,
-    availableIngredients: 6,
-    totalIngredients: 6,
-    expiringCount: 2,
-    isExpiring: true,
-  ),
-  Recipe(
-    recipeId: 2,
-    name: 'Bánh mì chả cá Nha Trang',
-    timeLabel: '20 phút',
-    difficulty: RecipeDifficulty.medium,
-    mealTime: RecipeMealTime.dinner,
-    matchType: MatchType.partial,
-    availableIngredients: 5,
-    totalIngredients: 6,
-    missingCount: 1,
-  ),
-  Recipe(
-    recipeId: 3,
-    name: 'Chả cá Lã Vọng truyền thống',
-    timeLabel: '15 phút',
-    difficulty: RecipeDifficulty.hard,
-    mealTime: RecipeMealTime.dinner,
-    matchType: MatchType.partial,
-    availableIngredients: 7,
-    totalIngredients: 9,
-    missingCount: 2,
-  ),
-  Recipe(
-    recipeId: 4,
-    name: 'Bún cá Hải Phòng truyền thống',
-    timeLabel: '20 phút',
-    difficulty: RecipeDifficulty.hard,
-    mealTime: RecipeMealTime.dinner,
-    matchType: MatchType.partial,
-    availableIngredients: 7,
-    totalIngredients: 9,
-    missingCount: 2,
-  ),
-];
-
 class RecipeCardList extends StatelessWidget {
-  final List<Recipe> recipes;
+  final List<RecipeCardModel> recipes;
   final bool isTablet;
   final bool isDesktop;
+  final ScrollPhysics? physics;
 
   const RecipeCardList({
     Key? key,
     required this.recipes,
     this.isTablet = false,
     this.isDesktop = false,
+    this.physics,
   }) : super(key: key);
 
   @override
@@ -112,6 +71,7 @@ class RecipeCardList extends StatelessWidget {
         itemBuilder: (context, index) {
           return RecipeCardItem(recipe: recipes[index]);
         },
+        physics: physics,
       );
     } else if (isTablet) {
       return GridView.builder(
@@ -125,10 +85,11 @@ class RecipeCardList extends StatelessWidget {
         itemBuilder: (context, index) {
           return RecipeCardItem(recipe: recipes[index]);
         },
+        physics: physics,
       );
     } else {
       return ListView.separated(
-        physics: const BouncingScrollPhysics(),
+        physics: physics ?? const BouncingScrollPhysics(),
         itemCount: recipes.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {

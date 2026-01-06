@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'components/recipe_card_list.dart';
-import '../plans/plan_view.dart';
 import '../../models/recipe_ingredient.dart';
 import '../../models/ingredient.dart';
 import '../../models/enums.dart';
+import '../../services/shared_recipe_service.dart';
+import '../home_view.dart';
 
 class RecipeDetailView extends StatefulWidget {
-  final Recipe recipe;
+  final RecipeCardModel recipe;
 
   const RecipeDetailView({super.key, required this.recipe});
 
@@ -15,8 +16,7 @@ class RecipeDetailView extends StatefulWidget {
 }
 
 class _RecipeDetailViewState extends State<RecipeDetailView> {
-  List<RecipeIngredient> _missingIngredients = [];
-  bool _isLoading = true;
+  List<RecipeIngredient> _missingIngredientEntities = [];
 
   @override
   void initState() {
@@ -25,19 +25,49 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   Future<void> _loadMissingIngredients() async {
-    // Tạo dummy missing ingredients dựa trên missingCount của recipe
-    if (widget.recipe.missingCount != null && widget.recipe.missingCount! > 0) {
-      _missingIngredients = _createDummyMissingIngredients(
+    // Sử dụng real missing ingredients từ database
+    if (widget.recipe.missingNames.isNotEmpty) {
+      _missingIngredientEntities = _createMissingIngredientsFromNames(
+        widget.recipe.missingNames,
+      );
+      print(
+        '📝 Sử dụng real missing ingredients: ${widget.recipe.missingNames}',
+      );
+    } else if (widget.recipe.missingCount != null &&
+        widget.recipe.missingCount! > 0) {
+      // Fallback: tạo dummy nếu không có real data
+      _missingIngredientEntities = _createDummyMissingIngredients(
         widget.recipe.missingCount!,
+      );
+      print(
+        '📝 Fallback: sử dụng dummy missing ingredients, count: ${widget.recipe.missingCount}',
       );
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() {});
   }
 
-  // Tạo dummy missing ingredients cho testing
+  // Tạo missing ingredients từ tên thật (real data)
+  List<RecipeIngredient> _createMissingIngredientsFromNames(
+    List<String> names,
+  ) {
+    return List.generate(
+      names.length,
+      (index) => RecipeIngredient(
+        recipeId: widget.recipe.recipeId ?? 0,
+        ingredientId: index + 1000, // Use high ID to avoid conflicts
+        quantity: 1.0,
+        unit: UnitEnum.cai, // Default unit
+        ingredient: Ingredient(
+          ingredientId: index + 1000,
+          name: names[index],
+          category: 'missing',
+        ),
+      ),
+    );
+  }
+
+  // Tạo dummy missing ingredients cho testing (fallback)
   List<RecipeIngredient> _createDummyMissingIngredients(int count) {
     final dummyIngredients = [
       'Hành tây',
@@ -55,7 +85,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     return List.generate(
       count,
       (index) => RecipeIngredient(
-        recipeId: widget.recipe.recipeId ?? 0,
+        recipeId: 0, // RecipeCardModel không có recipeId; dùng 0 cho dummy
         ingredientId: index + 1,
         quantity: 1.0 + index,
         unit: UnitEnum.g,
@@ -72,6 +102,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   Widget build(BuildContext context) {
     final availableList = _availableIngredients();
     final missingList = _getMissingIngredientsDisplay();
+    final instructionSteps = _instructionSteps();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -94,185 +125,191 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hero
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _heroImage(),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.recipe.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _metaRow(context),
-                  const SizedBox(height: 8),
-                  _metaRow2(context),
-                ],
-              ),
-            ),
-
-            // Ingredients summary
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Nguyên liệu',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _ingredientGroup(
-                    title: 'Bạn đã có',
-                    titleColor: const Color(0xFF16A34A),
-                    items: availableList.isNotEmpty
-                        ? availableList
-                        : ['Chưa có thông tin nguyên liệu sẵn có'],
-                    icon: Icons.check_circle,
-                    iconColor: const Color(0xFF4CAF50),
-                  ),
-                  const SizedBox(height: 16),
-                  if (missingList.isNotEmpty)
-                    _ingredientGroup(
-                      title: 'Cần mua thêm',
-                      titleColor: const Color(0xFFF59E0B),
-                      items: missingList,
-                      icon: Icons.add_circle,
-                      iconColor: const Color(0xFFF59E0B),
-                      showAddButton: true,
-                    )
-                  else if (_isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Không tải lại dữ liệu từ server ở màn chi tiết tĩnh; chỉ giả lập delay nhỏ.
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Hero
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _heroImage(),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.recipe.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                        height: 1.3,
                       ),
-                    )
-                  else
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text(
-                        'Không có nguyên liệu nào cần mua thêm!',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontStyle: FontStyle.italic,
+                    ),
+                    const SizedBox(height: 12),
+                    _metaRow(context),
+                    const SizedBox(height: 8),
+                    _metaRow2(context),
+                  ],
+                ),
+              ),
+
+              // Ingredients summary
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nguyên liệu',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _ingredientGroup(
+                      title: 'Bạn đã có',
+                      titleColor: const Color(0xFF16A34A),
+                      items: availableList.isNotEmpty
+                          ? availableList
+                          : ['Chưa có thông tin nguyên liệu sẵn có'],
+                      icon: Icons.check_circle,
+                      iconColor: const Color(0xFF4CAF50),
+                    ),
+                    const SizedBox(height: 16),
+                    if (missingList.isNotEmpty)
+                      _ingredientGroup(
+                        title: 'Cần mua thêm',
+                        titleColor: const Color(0xFFF59E0B),
+                        items: missingList,
+                        icon: Icons.add_circle,
+                        iconColor: const Color(0xFFF59E0B),
+                        showAddButton: true,
+                      ),
+                  ],
+                ),
+              ),
+
+              // Video placeholder
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Video hướng dẫn',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          size: 64,
+                          color: Color(0xFF6B7280),
                         ),
                       ),
                     ),
-                ],
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Video minh họa',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // Video placeholder
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Video hướng dẫn',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.play_circle_fill,
-                        size: 64,
-                        color: Color(0xFF6B7280),
+              // Steps (static placeholders)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Các bước thực hiện',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Video minh họa',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    if (instructionSteps.isNotEmpty)
+                      ...instructionSteps.asMap().entries.map(
+                        (e) => _stepCard(e.key + 1, e.value),
+                      )
+                    else ...[
+                      _stepCard(1, 'Chuẩn bị đầy đủ nguyên liệu.'),
+                      _stepCard(2, 'Sơ chế và ướp theo khẩu vị.'),
+                      _stepCard(3, 'Chế biến theo hướng dẫn và thưởng thức.'),
+                    ],
+                  ],
+                ),
               ),
-            ),
 
-            // Steps (static placeholders)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Các bước thực hiện',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
+              // Actions
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.event, color: Colors.white),
+                    label: const Text(
+                      'Thêm món vào Kế hoạch',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _stepCard(1, 'Chuẩn bị đầy đủ nguyên liệu.'),
-                  _stepCard(2, 'Sơ chế và ướp theo khẩu vị.'),
-                  _stepCard(3, 'Chế biến theo hướng dẫn và thưởng thức.'),
-                ],
-              ),
-            ),
+                    onPressed: () {
+                      // Đặt recipe vào shared service
+                      SharedRecipeService().setSelectedRecipe(
+                        widget.recipe,
+                        fromTab: true,
+                      );
 
-            // Actions
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.event, color: Colors.white),
-                  label: const Text(
-                    'Thêm món vào Kế hoạch',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute(builder: (_) => const PlanView()));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    minimumSize: const Size.fromHeight(48),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                      // Navigate đến HomeView và chuyển sang tab PlanView (index 3)
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const HomeView(initialIndex: 3), // Go to Plan tab
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      minimumSize: const Size.fromHeight(48),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -495,19 +532,92 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   List<String> _availableIngredients() {
+    if (widget.recipe.availableNames.isNotEmpty) {
+      return widget.recipe.availableNames;
+    }
     final count = widget.recipe.availableIngredients;
     if (count <= 0) return [];
     return List.generate(count, (i) => 'Nguyên liệu có sẵn #${i + 1}');
   }
 
-  List<String> _getMissingIngredientsDisplay() {
-    if (_missingIngredients.isEmpty) return [];
+  List<String> _missingIngredientNames() {
+    if (widget.recipe.missingNames.isNotEmpty)
+      return widget.recipe.missingNames;
+    final inferredMissing =
+        (widget.recipe.totalIngredients - widget.recipe.availableIngredients)
+            .clamp(0, 99);
+    final count = widget.recipe.missingCount ?? inferredMissing;
+    if (count <= 0) return [];
+    return List.generate(count, (i) => 'Nguyên liệu cần mua #${i + 1}');
+  }
 
-    return _missingIngredients.map((ingredient) {
-      final ingredientName = ingredient.ingredient?.name ?? 'Unknown';
-      final quantity = ingredient.quantity;
-      final unit = ingredient.unit.name;
-      return '$ingredientName ($quantity $unit)';
-    }).toList();
+  List<String> _getMissingIngredientsDisplay() {
+    if (_missingIngredientEntities.isNotEmpty) {
+      return _missingIngredientEntities
+          .map((e) => e.ingredient?.name ?? 'Nguyên liệu cần mua')
+          .toList();
+    }
+    return _missingIngredientNames();
+  }
+
+  List<String> _instructionSteps() {
+    final text = widget.recipe.instructions;
+    if (text == null || text.trim().isEmpty) {
+      return const [];
+    }
+    // Chuẩn hóa: thay literal "\n" thành xuống dòng thực.
+    final normalized = text.replaceAll(r'\n', '\n');
+
+    // Ưu tiên tách theo xuống dòng
+    final lines = normalized
+        .split(RegExp(r'[\r\n]+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (lines.length > 1) {
+      return lines
+          .asMap()
+          .entries
+          .map((e) => _cleanStepText(e.value, e.key))
+          .toList();
+    }
+
+    // Nếu chỉ còn một chuỗi, thử tách theo pattern "Bước x:"
+    final stepPattern = RegExp(r'(?=Bước\s*\d+[:.\-])', caseSensitive: false);
+    final viaStepKeyword = normalized
+        .split(stepPattern)
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (viaStepKeyword.length > 1) {
+      return viaStepKeyword
+          .asMap()
+          .entries
+          .map((e) => _cleanStepText(e.value, e.key))
+          .toList();
+    }
+
+    // Nếu không có xuống dòng, tách theo dấu câu.
+    final sentences = normalized
+        .split(RegExp(r'(?<=[.!?])\s+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    return sentences
+        .asMap()
+        .entries
+        .map((e) => _cleanStepText(e.value, e.key))
+        .toList();
+  }
+
+  String _cleanStepText(String raw, int index) {
+    // Loại bỏ tiền tố "Bước x:" nếu có, giữ phần nội dung.
+    final cleaned = raw.replaceFirst(
+      RegExp(r'^Bước\s*\d+\s*[:.-]?\s*', caseSensitive: false),
+      '',
+    );
+    if (cleaned.trim().isNotEmpty) return cleaned.trim();
+    // fallback: nếu sau khi cắt trống, dùng raw
+    return raw.trim().isEmpty ? 'Bước ${index + 1}' : raw.trim();
   }
 }

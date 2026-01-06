@@ -169,8 +169,9 @@ class ShoppingListService {
         await _addOrUpdateShoppingListItem(
           listId: weeklyList.listId!,
           ingredient: missingIngredient,
-          mealPlanId: mealPlanId,
-          sourceRecipeId: recipeId,
+          // NOTE: DB currently enforces uniqueness on (list_id, ingredient_id, unit).
+          // We merge quantities on that key so we cannot reliably store per-meal/per-recipe
+          // attribution in a single row.
         );
       }
     } catch (e) {
@@ -195,16 +196,16 @@ class ShoppingListService {
   Future<void> _addOrUpdateShoppingListItem({
     required int listId,
     required RecipeIngredient ingredient,
-    int? mealPlanId,
-    int? sourceRecipeId,
   }) async {
-    // Kiểm tra xem đã có item này trong shopping list chưa
+    // IMPORTANT: The DB has a unique constraint (list_id, ingredient_id, unit)
+    // (see PostgrestException: uq_shopping_item_merge). Therefore, we must merge
+    // auto-items on that key.
     final existingItems = await _supabase
         .from('shopping_list_items')
         .select()
         .eq('list_id', listId)
         .eq('ingredient_id', ingredient.ingredientId)
-        .eq('source_recipe_id', sourceRecipeId ?? 0);
+        .eq('unit', ingredient.unit.toDbValue());
 
     if (existingItems.isNotEmpty) {
       // Cập nhật quantity nếu đã có
@@ -214,7 +215,11 @@ class ShoppingListService {
 
       await _supabase
           .from('shopping_list_items')
-          .update({'quantity': newQuantity})
+          .update({
+            'quantity': newQuantity,
+            // Ensure merged auto-items keep the auto marker.
+            'source_name': existingItem.sourceName ?? 'Từ công thức',
+          })
           .eq('item_id', existingItem.itemId!);
     } else {
       // Tạo mới nếu chưa có
@@ -223,8 +228,7 @@ class ShoppingListService {
         ingredientId: ingredient.ingredientId,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
-        mealPlanId: mealPlanId,
-        sourceRecipeId: sourceRecipeId,
+        sourceName: 'Từ công thức',
       );
 
       await _supabase
@@ -233,9 +237,179 @@ class ShoppingListService {
     }
   }
 
+  /// Trừ missing ingredients của một recipe khỏi shopping list tuần.
+  ///
+  /// Logic:
+  /// - Tính missing ingredients dựa trên pantry hiện tại
+  /// - Với mỗi ingredient, trừ quantity vào dòng auto (ingredient_id != null)
+  /// - Nếu quantity <= 0 thì xoá dòng đó
+  /// - Không đụng tới manual items (ingredient_id == null)
+  Future<void> subtractMissingIngredientsFromShoppingList({
+    required String profileId,
+    required int recipeId,
+    required DateTime weekStart,
+  }) async {
+    try {
+      final weeklyList = await getOrCreateWeeklyList(
+        profileId: profileId,
+        weekStart: weekStart,
+      );
+
+      final recipeIngredients = await getRecipeIngredients(recipeId);
+      final pantryItems = await getUserPantryItems(profileId);
+
+      final missingIngredients = <RecipeIngredient>[];
+      for (final recipeIngredient in recipeIngredients) {
+        final ingredientId = recipeIngredient.ingredientId;
+        final pantryItem = pantryItems.firstWhere(
+          (item) => item.ingredientId == ingredientId,
+          orElse: () => PantryItem(
+            profileId: profileId,
+            ingredientId: 0,
+            quantity: 0,
+            unit: UnitEnum.g,
+            purchaseDate: DateTime.now(),
+            expiryDate: DateTime.now(),
+          ),
+        );
+
+        if (pantryItem.ingredientId == 0 ||
+            !_hasEnoughQuantity(pantryItem, recipeIngredient)) {
+          missingIngredients.add(recipeIngredient);
+        }
+      }
+
+      for (final missingIngredient in missingIngredients) {
+        final existingItems = await _supabase
+            .from('shopping_list_items')
+            .select()
+            .eq('list_id', weeklyList.listId!)
+            .eq('ingredient_id', missingIngredient.ingredientId)
+            .eq('unit', missingIngredient.unit.toDbValue());
+
+        if (existingItems.isEmpty) {
+          continue;
+        }
+
+        final existingItem = ShoppingListItem.fromJson(existingItems.first);
+        final newQuantity = existingItem.quantity - missingIngredient.quantity;
+
+        if (newQuantity <= 0) {
+          await _supabase
+              .from('shopping_list_items')
+              .delete()
+              .eq('item_id', existingItem.itemId!);
+        } else {
+          await _supabase
+              .from('shopping_list_items')
+              .update({'quantity': newQuantity})
+              .eq('item_id', existingItem.itemId!);
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        'Error subtracting missing ingredients from shopping list: $e',
+      );
+    }
+  }
+
   /// Helper để tính week number
   int _getWeekNumber(DateTime date) {
     final dayOfYear = date.difference(DateTime(date.year, 1, 1)).inDays;
     return (dayOfYear / 7).ceil();
+  }
+
+  /// Thêm một item vào shopping list
+  Future<void> addItemToShoppingList({
+    required String profileId,
+    required String name,
+    required double quantity,
+    required String unit,
+    String? notes,
+    int? sourceRecipeId, // Thêm sourceRecipeId parameter
+  }) async {
+    try {
+      print('🛒 Bắt đầu thêm item: $name');
+
+      // Lấy tuần hiện tại
+      final now = DateTime.now();
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      print('🛒 Week start: $weekStart');
+
+      // Lấy hoặc tạo weekly list
+      final weeklyList = await getOrCreateWeeklyList(
+        profileId: profileId,
+        weekStart: weekStart,
+      );
+      print('🛒 Weekly list ID: ${weeklyList.listId}');
+
+      // Convert unit string to UnitEnum
+      UnitEnum unitEnum;
+      switch (unit.toLowerCase()) {
+        case 'ml':
+          unitEnum = UnitEnum.ml;
+          break;
+        case 'quả':
+          unitEnum = UnitEnum.qua;
+          break;
+        case 'cái':
+        case 'cũ':
+        case 'nánh':
+        case 'chai':
+        case 'hộp':
+        case 'kg':
+        case 'l':
+          unitEnum = UnitEnum.cai;
+          break;
+        case 'g':
+        default:
+          unitEnum = UnitEnum.g;
+          break;
+      }
+
+      // Tạo shopping list item mới
+      final newItem = ShoppingListItem(
+        listId: weeklyList.listId!,
+        sourceName: notes ?? name,
+        quantity: quantity,
+        unit: unitEnum,
+        isPurchased: false,
+        sourceRecipeId: sourceRecipeId, // Thêm sourceRecipeId
+      );
+
+      print('🛒 Tạo item: ${newItem.toInsertJson()}');
+
+      // Insert vào database
+      final result = await _supabase
+          .from('shopping_list_items')
+          .insert(newItem.toInsertJson())
+          .select();
+
+      print('✅ Đã thêm item thành công: $result');
+    } catch (e) {
+      print('❌ Lỗi khi thêm item vào shopping list: $e');
+      debugPrint('Error adding item to shopping list: $e');
+      rethrow;
+    }
+  }
+
+  /// Xoá auto-items (missing ingredients) theo đúng đóng góp của 1 meal.
+  ///
+  /// - Chỉ xoá các dòng gắn với (meal_plan_id, source_recipe_id)
+  /// - Không đụng vào manual items (meal_plan_id/source_recipe_id == null)
+  Future<void> removeAutoItemsForMeal({
+    required String profileId,
+    required DateTime weekStart,
+    required int mealPlanId,
+    required int recipeId,
+  }) async {
+    // Current DB schema merges items by (list_id, ingredient_id, unit), so we
+    // cannot reliably delete per-meal rows. Instead, subtract this meal's
+    // missing ingredients contribution.
+    await subtractMissingIngredientsFromShoppingList(
+      profileId: profileId,
+      recipeId: recipeId,
+      weekStart: weekStart,
+    );
   }
 }
