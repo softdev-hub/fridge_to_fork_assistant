@@ -227,6 +227,7 @@ class _DayDetailViewState extends State<DayDetailView> {
       missingCount: 3,
       expiringCount: null,
       isExpiring: false,
+      imageUrl: meal.imageUrl,
     );
 
     Navigator.of(

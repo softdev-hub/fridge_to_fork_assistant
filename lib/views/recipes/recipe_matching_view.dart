@@ -33,6 +33,32 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
     ingredientLabels: <String>{},
   );
 
+  Future<Set<int>> _fetchExpiringIngredientIds({
+    required String profileId,
+    int days = 3,
+  }) async {
+    final supabase = Supabase.instance.client;
+    final today = DateTime.now();
+    final futureDate = today.add(Duration(days: days));
+    final todayStr = today.toIso8601String().split('T')[0];
+    final futureDateStr = futureDate.toIso8601String().split('T')[0];
+
+    final response = await supabase
+        .from('pantry_items')
+        .select('ingredient_id')
+        .eq('profile_id', profileId)
+        .isFilter('deleted_at', null)
+        .gte('expiry_date', todayStr)
+        .lte('expiry_date', futureDateStr);
+
+    final ids = <int>{};
+    for (final row in (response as List)) {
+      final v = row['ingredient_id'];
+      if (v is int) ids.add(v);
+    }
+    return ids;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +80,11 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
       return const _MatchData(cards: <RecipeCardModel>[], authRequired: true);
     }
 
+    final expiringIngredientIds = await _fetchExpiringIngredientIds(
+      profileId: user.id,
+      days: 3,
+    );
+
     final suggestions = await _controller.getSuggestedRecipes(
       callAiAdvisor: false,
       seedIfEmpty: false, // dùng dữ liệu thật của user đang đăng nhập
@@ -64,11 +95,15 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
       _filters,
       lenientMissing: true,
     );
-    final cards = filtered.map(_mapToCardModel).toList();
+    final cards =
+        filtered.map((s) => _mapToCardModel(s, expiringIngredientIds)).toList();
     return _MatchData(cards: cards);
   }
 
-  RecipeCardModel _mapToCardModel(RecipeSuggestion suggestion) {
+  RecipeCardModel _mapToCardModel(
+    RecipeSuggestion suggestion,
+    Set<int> expiringIngredientIds,
+  ) {
     final recipe = suggestion.recipe;
     final available =
         suggestion.match.availableIngredients ??
@@ -120,6 +155,12 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
         .map(_ingredientName)
         .toList();
 
+    final expiringCount = suggestion.matchedIngredients
+        .map((ri) => ri.ingredientId)
+        .toSet()
+        .intersection(expiringIngredientIds)
+        .length;
+
     return RecipeCardModel(
       recipeId: recipe.recipeId,
       name: recipe.title,
@@ -130,11 +171,13 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
       availableIngredients: available,
       totalIngredients: total,
       missingCount: missing,
-      expiringCount: 0,
-      isExpiring: false,
+      expiringCount: expiringCount > 0 ? expiringCount : null,
+      isExpiring: expiringCount > 0,
       availableNames: availableNames,
       missingNames: missingNames,
       instructions: recipe.instructions,
+      videoUrl: recipe.videoUrl,
+      imageUrl: recipe.imageUrl,
     );
   }
 
@@ -323,18 +366,6 @@ class _RecipeMatchingViewState extends State<RecipeMatchingView> {
         timeKey: '',
         mealLabels: <String>{},
         cuisineLabels: <String>{},
-        ingredientLabels: <String>{},
-      );
-      _future = _load();
-    });
-  }
-
-  void _clearIngredientFilter() {
-    setState(() {
-      _filters = RecipeFilterOptions(
-        timeKey: _filters.timeKey,
-        mealLabels: _filters.mealLabels,
-        cuisineLabels: _filters.cuisineLabels,
         ingredientLabels: <String>{},
       );
       _future = _load();

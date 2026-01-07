@@ -73,6 +73,8 @@ class RecipeCardItem extends StatelessWidget {
   Widget _buildThumbnailWithPriority() {
     final bool showPriority =
         (recipe.expiringCount ?? 0) > 0 || recipe.isExpiring;
+    final imageUrl = recipe.imageUrl?.trim();
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -87,11 +89,33 @@ class RecipeCardItem extends StatelessWidget {
           child: ClipOval(
             child: Container(
               color: const Color(0xFFF4F5F7),
-              child: const Icon(
-                Icons.image,
-                size: 48,
-                color: Color(0xFF9CA3AF),
-              ),
+              child: hasImage
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image_outlined,
+                          size: 40,
+                          color: Color(0xFF9CA3AF),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                    )
+                  : const Icon(
+                      Icons.image,
+                      size: 48,
+                      color: Color(0xFF9CA3AF),
+                    ),
             ),
           ),
         ),
