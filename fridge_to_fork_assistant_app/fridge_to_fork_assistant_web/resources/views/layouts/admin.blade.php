@@ -576,7 +576,7 @@
             </div>
 
             <div class="nav-section">
-                <div class="nav-section-title">Quản lý</div>
+                <div class="nav-section-title">Quản lý kho</div>
                 <a href="{{ route('ingredients.index') }}"
                     class="nav-link {{ request()->routeIs('ingredients.*') ? 'active' : '' }}">
                     <span class="nav-icon">🥬</span>
@@ -587,6 +587,29 @@
                     <span class="nav-icon">🧊</span>
                     Tủ lạnh
                 </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Công thức & Lịch</div>
+                <a href="{{ route('recipes.index') }}"
+                    class="nav-link {{ request()->routeIs('recipes.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📖</span>
+                    Công thức
+                </a>
+                <a href="{{ route('meal-plans.index') }}"
+                    class="nav-link {{ request()->routeIs('meal-plans.*') ? 'active' : '' }}">
+                    <span class="nav-icon">📅</span>
+                    Lịch ăn
+                </a>
+                <a href="{{ route('shopping-lists.index') }}"
+                    class="nav-link {{ request()->routeIs('shopping-lists.*') ? 'active' : '' }}">
+                    <span class="nav-icon">🛒</span>
+                    Mua sắm
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Người dùng</div>
                 <a href="{{ route('profiles.index') }}"
                     class="nav-link {{ request()->routeIs('profiles.*') ? 'active' : '' }}">
                     <span class="nav-icon">👥</span>

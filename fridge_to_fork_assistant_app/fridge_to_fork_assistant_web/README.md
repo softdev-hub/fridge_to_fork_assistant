@@ -1,59 +1,182 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🍳 Fridge to Fork - Admin Panel
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel Version">
+  <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP Version">
+  <img src="https://img.shields.io/badge/PostgreSQL-Supabase-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database">
+  <img src="https://img.shields.io/badge/Vite-Frontend-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite">
 </p>
 
-## About Laravel
+## 📋 Giới thiệu
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**Fridge to Fork Admin Panel** là trang quản trị dành cho ứng dụng di động Fridge to Fork - một ứng dụng giúp người dùng quản lý thực phẩm trong tủ lạnh, theo dõi hạn sử dụng và gợi ý công thức nấu ăn.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Admin Panel này được xây dựng bằng **Laravel 12** và kết nối với **Supabase PostgreSQL** để quản lý dữ liệu backend của ứng dụng.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## ✨ Tính năng chính
 
-## Learning Laravel
+### 📊 Dashboard
+- Thống kê tổng quan về người dùng, nguyên liệu, pantry items
+- Biểu đồ và metrics quan trọng
+- Cảnh báo về sản phẩm sắp hết hạn
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 🥗 Quản lý Nguyên liệu (Ingredients)
+- Xem danh sách tất cả nguyên liệu
+- Thêm, sửa, xóa nguyên liệu
+- Phân loại theo danh mục
+- Upload hình ảnh nguyên liệu
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 🧊 Quản lý Pantry Items
+- Xem danh sách thực phẩm trong kho của người dùng
+- Theo dõi ngày hết hạn
+- Xem chi tiết từng sản phẩm
 
-## Laravel Sponsors
+### 👥 Quản lý Người dùng (Profiles)
+- Xem danh sách người dùng đăng ký
+- Xem thông tin chi tiết profile
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🗂️ Cấu trúc dự án
 
-### Premium Partners
+```
+fridge_to_fork_assistant_web/
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── DashboardController.php    # Xử lý trang Dashboard
+│   │   ├── IngredientController.php   # CRUD nguyên liệu
+│   │   ├── PantryItemController.php   # Quản lý pantry items
+│   │   └── ProfileController.php      # Quản lý người dùng
+│   └── Models/
+│       ├── ExpiryAlert.php            # Model cảnh báo hết hạn
+│       ├── Ingredient.php             # Model nguyên liệu
+│       ├── PantryItem.php             # Model pantry item
+│       └── Profile.php                # Model người dùng
+├── resources/views/
+│   ├── layouts/                       # Layout chính
+│   ├── dashboard.blade.php            # Trang dashboard
+│   ├── ingredients/                   # Views quản lý nguyên liệu
+│   ├── pantry-items/                  # Views quản lý pantry
+│   └── profiles/                      # Views quản lý người dùng
+├── routes/
+│   └── web.php                        # Định nghĩa routes
+└── ...
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🚀 Cài đặt
 
-## Contributing
+### Yêu cầu hệ thống
+- PHP >= 8.2
+- Composer
+- Node.js >= 18
+- NPM hoặc Yarn
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Các bước cài đặt
 
-## Code of Conduct
+1. **Clone repository**
+   ```bash
+   git clone <repository-url>
+   cd fridge_to_fork_assistant_web
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. **Cài đặt dependencies PHP**
+   ```bash
+   composer install
+   ```
 
-## Security Vulnerabilities
+3. **Cài đặt dependencies Node.js**
+   ```bash
+   npm install
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. **Cấu hình môi trường**
+   ```bash
+   cp .env.example .env
+   # Hoặc sử dụng cấu hình Supabase:
+   cp .env.supabase .env
+   ```
 
-## License
+5. **Cấu hình database**
+   
+   Chỉnh sửa file `.env` với thông tin kết nối Supabase:
+   ```env
+   DB_CONNECTION=pgsql
+   DB_HOST=db.xxxxxxxxxxxx.supabase.co
+   DB_PORT=5432
+   DB_DATABASE=postgres
+   DB_USERNAME=postgres
+   DB_PASSWORD=your_password
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+6. **Tạo application key**
+   ```bash
+   php artisan key:generate
+   ```
+
+7. **Build assets**
+   ```bash
+   npm run build
+   ```
+
+## 🏃‍♂️ Chạy ứng dụng
+
+### Development mode
+```bash
+# Sử dụng script có sẵn (chạy server + queue + vite cùng lúc)
+composer dev
+
+# Hoặc chạy riêng lẻ:
+php artisan serve
+npm run dev
+```
+
+Truy cập: [http://localhost:8000](http://localhost:8000)
+
+### Production mode
+```bash
+npm run build
+php artisan serve
+```
+
+## 📚 Routes
+
+| Method | URI | Action | Mô tả |
+|--------|-----|--------|-------|
+| GET | `/` | DashboardController@index | Trang Dashboard |
+| GET | `/ingredients` | IngredientController@index | Danh sách nguyên liệu |
+| GET | `/ingredients/create` | IngredientController@create | Form thêm nguyên liệu |
+| POST | `/ingredients` | IngredientController@store | Lưu nguyên liệu mới |
+| GET | `/ingredients/{id}` | IngredientController@show | Chi tiết nguyên liệu |
+| GET | `/ingredients/{id}/edit` | IngredientController@edit | Form sửa nguyên liệu |
+| PUT | `/ingredients/{id}` | IngredientController@update | Cập nhật nguyên liệu |
+| DELETE | `/ingredients/{id}` | IngredientController@destroy | Xóa nguyên liệu |
+| GET | `/pantry-items` | PantryItemController@index | Danh sách pantry items |
+| GET | `/pantry-items/{id}` | PantryItemController@show | Chi tiết pantry item |
+| DELETE | `/pantry-items/{id}` | PantryItemController@destroy | Xóa pantry item |
+| GET | `/profiles` | ProfileController@index | Danh sách người dùng |
+| GET | `/profiles/{id}` | ProfileController@show | Chi tiết người dùng |
+
+## 🧪 Testing
+
+```bash
+# Chạy tất cả tests
+php artisan test
+
+# Hoặc sử dụng Pest
+./vendor/bin/pest
+```
+
+## 🛠️ Công nghệ sử dụng
+
+- **Backend:** Laravel 12.x
+- **Database:** PostgreSQL (Supabase)
+- **Frontend:** Blade Templates, Vite
+- **Testing:** Pest PHP
+
+## 📝 License
+
+Dự án này được phát triển cho mục đích học tập.
+
+---
+
+<p align="center">
+  Made with ❤️ by Fridge to Fork Team
+</p>
