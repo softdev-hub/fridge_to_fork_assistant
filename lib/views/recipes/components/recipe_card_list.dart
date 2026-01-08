@@ -24,6 +24,8 @@ class RecipeCardModel {
   final List<String> availableNames;
   final List<String> missingNames;
   final String? instructions;
+  final String? videoUrl;
+  final String? imageUrl;
 
   RecipeCardModel({
     this.recipeId,
@@ -40,6 +42,8 @@ class RecipeCardModel {
     this.availableNames = const [],
     this.missingNames = const [],
     this.instructions,
+    this.videoUrl,
+    this.imageUrl,
   });
 }
 

@@ -17,6 +17,31 @@ class RecipeService {
 
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  Future<Set<int>> _fetchExpiringIngredientIds({
+    required String profileId,
+    int days = 3,
+  }) async {
+    final today = DateTime.now();
+    final futureDate = today.add(Duration(days: days));
+    final todayStr = today.toIso8601String().split('T')[0];
+    final futureDateStr = futureDate.toIso8601String().split('T')[0];
+
+    final response = await _supabase
+        .from('pantry_items')
+        .select('ingredient_id')
+        .eq('profile_id', profileId)
+        .isFilter('deleted_at', null)
+        .gte('expiry_date', todayStr)
+        .lte('expiry_date', futureDateStr);
+
+    final ids = <int>{};
+    for (final row in (response as List)) {
+      final v = row['ingredient_id'];
+      if (v is int) ids.add(v);
+    }
+    return ids;
+  }
+
   /// Load danh sách RecipeCardModel theo đúng logic của Recipes tab.
   ///
   /// - Dùng cùng nguồn: RecipeSuggestionController + RecipeSuggestionFilters.
@@ -26,6 +51,11 @@ class RecipeService {
   }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return const [];
+
+    final expiringIngredientIds = await _fetchExpiringIngredientIds(
+      profileId: user.id,
+      days: 3,
+    );
 
     final controller = RecipeSuggestionController();
     final suggestions = await controller.getSuggestedRecipes(
@@ -40,10 +70,13 @@ class RecipeService {
       lenientMissing: true,
     );
 
-    return filtered.map(_mapToCardModel).toList();
+    return filtered.map((s) => _mapToCardModel(s, expiringIngredientIds)).toList();
   }
 
-  RecipeCardModel _mapToCardModel(RecipeSuggestion suggestion) {
+  RecipeCardModel _mapToCardModel(
+    RecipeSuggestion suggestion,
+    Set<int> expiringIngredientIds,
+  ) {
     final recipe = suggestion.recipe;
     final available =
         suggestion.match.availableIngredients ??
@@ -95,6 +128,12 @@ class RecipeService {
         .map(_ingredientName)
         .toList();
 
+    final expiringCount = suggestion.matchedIngredients
+        .map((ri) => ri.ingredientId)
+        .toSet()
+        .intersection(expiringIngredientIds)
+        .length;
+
     return RecipeCardModel(
       recipeId: recipe.recipeId,
       name: recipe.title,
@@ -105,11 +144,13 @@ class RecipeService {
       availableIngredients: available,
       totalIngredients: total,
       missingCount: missing,
-      expiringCount: 0,
-      isExpiring: false,
+      expiringCount: expiringCount > 0 ? expiringCount : null,
+      isExpiring: expiringCount > 0,
       availableNames: availableNames,
       missingNames: missingNames,
       instructions: recipe.instructions,
+      videoUrl: recipe.videoUrl,
+      imageUrl: recipe.imageUrl,
     );
   }
 }
