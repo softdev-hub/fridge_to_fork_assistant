@@ -8,6 +8,7 @@ import 'package:fridge_to_fork_assistant/views/recipes/recipe_matching_view.dart
 import 'package:fridge_to_fork_assistant/views/plans/plan_view.dart';
 import 'package:fridge_to_fork_assistant/views/notification/notification.dart';
 import 'package:fridge_to_fork_assistant/views/auth/login_view.dart';
+import 'package:fridge_to_fork_assistant/views/chat/chat_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile.dart';
 import '../models/pantry_item.dart';
@@ -62,6 +63,16 @@ class _HomeViewState extends State<HomeView> {
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _selectedIndex,
         onTap: _switchTab,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatView()),
+          );
+        },
+        backgroundColor: const Color(0xFF4CAF50),
+        child: const Icon(Icons.smart_toy, color: Colors.white),
       ),
     );
   }
