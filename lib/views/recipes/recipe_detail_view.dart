@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:chewie/chewie.dart';
+import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'components/recipe_card_list.dart';
 import '../../models/recipe_ingredient.dart';
 import '../../models/ingredient.dart';
@@ -17,11 +20,25 @@ class RecipeDetailView extends StatefulWidget {
 
 class _RecipeDetailViewState extends State<RecipeDetailView> {
   List<RecipeIngredient> _missingIngredientEntities = [];
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+  YoutubePlayerController? _youtubeController;
+  bool _isVideoLoading = false;
+  String? _videoError;
 
   @override
   void initState() {
     super.initState();
     _loadMissingIngredients();
+    _initVideo();
+  }
+
+  @override
+  void dispose() {
+    _chewieController?.dispose();
+    _videoPlayerController?.dispose();
+    _youtubeController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMissingIngredients() async {
@@ -45,6 +62,71 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     }
 
     setState(() {});
+  }
+
+  Future<void> _initVideo() async {
+    final url = widget.recipe.videoUrl?.trim();
+    if (url == null || url.isEmpty) return;
+
+    setState(() {
+      _isVideoLoading = true;
+      _videoError = null;
+    });
+
+    try {
+      // YouTube (play embedded, not opening external app/browser)
+      final ytId = YoutubePlayer.convertUrlToId(url);
+      if (ytId != null && ytId.isNotEmpty) {
+        _youtubeController = YoutubePlayerController(
+          initialVideoId: ytId,
+          flags: const YoutubePlayerFlags(
+            autoPlay: false,
+            mute: false,
+            disableDragSeek: false,
+            enableCaption: true,
+          ),
+        );
+        if (!mounted) return;
+        setState(() {
+          _isVideoLoading = false;
+        });
+        return;
+      }
+
+      // Non-YouTube (mp4/hls/stream url) via video_player + chewie
+      final uri = Uri.tryParse(url);
+      if (uri == null) {
+        throw Exception('URL video không hợp lệ');
+      }
+
+      _videoPlayerController = VideoPlayerController.networkUrl(uri);
+      await _videoPlayerController!.initialize();
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController!,
+        autoPlay: false,
+        looping: false,
+        showControls: true,
+        allowPlaybackSpeedChanging: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: const Color(0xFF4CAF50),
+          handleColor: const Color(0xFF4CAF50),
+          bufferedColor: const Color(0xFFE5E7EB),
+          backgroundColor: const Color(0xFFCBD5E1),
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isVideoLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isVideoLoading = false;
+        _videoError = 'Không thể phát video: $e';
+      });
+    }
   }
 
   // Tạo missing ingredients từ tên thật (real data)
@@ -214,26 +296,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.play_circle_fill,
-                          size: 64,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Video minh họa',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                    ),
+                    _buildVideoPlayer(),
                   ],
                 ),
               ),
@@ -316,6 +379,8 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   Widget _heroImage() {
+    final imageUrl = widget.recipe.imageUrl?.trim();
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
     return Container(
       height: 200,
       decoration: BoxDecoration(
@@ -323,8 +388,126 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: hasImage
+            ? Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      size: 56,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(child: CircularProgressIndicator());
+                },
+              )
+            : const Center(
+                child: Icon(Icons.image, size: 64, color: Color(0xFF9CA3AF)),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    final url = widget.recipe.videoUrl?.trim();
+
+    if (url == null || url.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.ondemand_video, color: Color(0xFF6B7280)),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Chưa có video hướng dẫn cho công thức này.',
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isVideoLoading) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_videoError != null) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          border: Border.all(color: const Color(0xFFFCD34D)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _videoError!,
+                style: const TextStyle(fontSize: 14, color: Color(0xFFD97706)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_youtubeController != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: YoutubePlayer(
+          controller: _youtubeController!,
+          showVideoProgressIndicator: true,
+          progressIndicatorColor: const Color(0xFF4CAF50),
+        ),
+      );
+    }
+
+    if (_chewieController != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: _videoPlayerController?.value.aspectRatio ?? (16 / 9),
+          child: Chewie(controller: _chewieController!),
+        ),
+      );
+    }
+
+    // Fallback
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: const Center(
-        child: Icon(Icons.image, size: 64, color: Color(0xFF9CA3AF)),
+        child: Icon(Icons.play_circle_fill, size: 64, color: Color(0xFF6B7280)),
       ),
     );
   }
