@@ -297,6 +297,10 @@ class PlanViewState extends State<PlanView> {
   }
 
   void _checkSelectedRecipe() {
+    final shouldOpenSheet = SharedRecipeService()
+        .takePendingOpenPlanRecipeSheet();
+    if (!shouldOpenSheet) return;
+
     final selectedRecipe = SharedRecipeService().selectedRecipe;
     if (selectedRecipe != null && SharedRecipeService().isRecipeFromTab) {
       print('🎯 Tìm thấy selected recipe: ${selectedRecipe.name}');
@@ -603,11 +607,21 @@ class PlanViewState extends State<PlanView> {
     }
   }
 
+  /// Public method để hạ (ẩn) bottom sheet thêm món.
+  void collapseRecipeBottomSheet() {
+    if (!mounted) return;
+    if (_showRecipeAddForm == false) return;
+    setState(() {
+      _showRecipeAddForm = false;
+    });
+  }
+
   /// Public method để force refresh toàn bộ plan view
   Future<void> forceRefresh() async {
     print('🔄 Force refreshing entire PlanView');
     await _loadWeekPlan();
     _refreshShoppingListIfVisible();
+    _checkSelectedRecipe();
     if (mounted) {
       setState(() {});
     }
