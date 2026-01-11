@@ -29,10 +29,52 @@ class SharedRecipeService with ChangeNotifier {
   // Map để lưu missing ingredients của từng recipe
   Map<int, List<String>> _recipeMissingIngredients = {};
 
+  // One-shot request: mở RecipeDetail trong tab Công thức theo recipeId.
+  int? _pendingOpenRecipeDetailId;
+
+  // One-shot request: yêu cầu HomeView chuyển tab (vd: sang Kế hoạch).
+  int? _pendingSwitchTabIndex;
+
+  // One-shot request: tự mở bottom sheet thêm món trong PlanView.
+  bool _pendingOpenPlanRecipeSheet = false;
+
   RecipeCardModel? get selectedRecipe => _selectedRecipe;
   bool get isRecipeFromTab => _isRecipeFromTab;
   List<RecipeCardModel> get availableRecipes => _availableRecipes;
   RecipeFilterOptions get lastAppliedFilters => _lastAppliedFilters;
+
+  int? takePendingOpenRecipeDetailId() {
+    final id = _pendingOpenRecipeDetailId;
+    _pendingOpenRecipeDetailId = null;
+    return id;
+  }
+
+  void requestOpenRecipeDetail(int recipeId) {
+    _pendingOpenRecipeDetailId = recipeId;
+    notifyListeners();
+  }
+
+  int? takePendingSwitchTabIndex() {
+    final index = _pendingSwitchTabIndex;
+    _pendingSwitchTabIndex = null;
+    return index;
+  }
+
+  void requestSwitchTab(int index) {
+    _pendingSwitchTabIndex = index;
+    notifyListeners();
+  }
+
+  bool takePendingOpenPlanRecipeSheet() {
+    final pending = _pendingOpenPlanRecipeSheet;
+    _pendingOpenPlanRecipeSheet = false;
+    return pending;
+  }
+
+  void requestOpenPlanRecipeSheet() {
+    _pendingOpenPlanRecipeSheet = true;
+    notifyListeners();
+  }
 
   void setLastAppliedFilters(RecipeFilterOptions filters) {
     _lastAppliedFilters = filters;
@@ -115,6 +157,9 @@ class SharedRecipeService with ChangeNotifier {
     _isRecipeFromTab = false;
     _availableRecipes.clear();
     _recipeMissingIngredients.clear();
+    _pendingOpenRecipeDetailId = null;
+    _pendingSwitchTabIndex = null;
+    _pendingOpenPlanRecipeSheet = false;
     notifyListeners();
   }
 

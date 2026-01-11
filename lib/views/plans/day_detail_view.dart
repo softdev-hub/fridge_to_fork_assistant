@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/enums.dart';
 import '../../services/meal_plan_service.dart';
+import '../../services/recipe_service.dart';
 import '../../services/shopping_list_service.dart';
+import '../../services/shared_recipe_service.dart';
+import '../recipes/components/recipe_card_list.dart';
+import '../recipes/recipe_detail_view.dart';
 import 'components/plan_models.dart';
 import 'components/day_detail_meal_card.dart';
 import 'components/missing_ingredients.dart';
-import '../recipes/components/recipe_card_list.dart';
-import '../recipes/recipe_detail_view.dart';
 
 class DayDetailView extends StatefulWidget {
   final DayPlan dayPlan;
@@ -188,14 +190,12 @@ class _DayDetailViewState extends State<DayDetailView> {
     return Column(
       children: List.generate(mealSlot.meals.length, (index) {
         final meal = mealSlot.meals[index];
-        final bool goToDetail = mealType == MealType.breakfast;
 
         final card = DayDetailMealCard(
           mealType: index == 0
               ? mealType
               : null, // Only show meal type label for first card
           meal: meal,
-          onTap: goToDetail ? () => _openRecipeDetail(meal) : null,
           onDelete: () => _removeMealFromPlan(mealType, meal, index),
         );
 
@@ -203,36 +203,52 @@ class _DayDetailViewState extends State<DayDetailView> {
           children: [
             if (index > 0)
               const SizedBox(height: 8), // Space between multiple meals
-            goToDetail
-                ? GestureDetector(
-                    onTap: () => _openRecipeDetail(meal),
-                    child: card,
-                  )
-                : card,
+            GestureDetector(onTap: () => _openRecipeDetail(meal), child: card),
           ],
         );
       }),
     );
   }
 
-  void _openRecipeDetail(Meal meal) {
-    final recipe = RecipeCardModel(
-      name: meal.name,
-      timeLabel: '25 phút',
-      difficulty: RecipeDifficulty.medium,
-      mealTime: RecipeMealTime.breakfast,
-      matchType: MatchType.full,
-      availableIngredients: 5,
-      totalIngredients: 8,
-      missingCount: 3,
-      expiringCount: null,
-      isExpiring: false,
-      imageUrl: meal.imageUrl,
+  Future<void> _openRecipeDetail(Meal meal) async {
+    final recipeId = meal.recipeId;
+    if (recipeId == null) return;
+
+    RecipeCardModel? recipeCard;
+
+    // Ưu tiên dùng cache từ Recipes tab nếu có.
+    final shared = SharedRecipeService();
+    for (final r in shared.availableRecipes) {
+      if (r.recipeId == recipeId) {
+        recipeCard = r;
+        break;
+      }
+    }
+
+    // Fallback: fetch đúng dữ liệu theo recipeId.
+    recipeCard ??= await RecipeService.instance.getRecipeCardById(
+      recipeId: recipeId,
     );
 
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => RecipeDetailView(recipe: recipe)));
+    if (!mounted) return;
+
+    if (recipeCard == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy công thức để mở chi tiết.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Push thẳng trang chi tiết lên trên DayDetailView để Back quay lại đúng.
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            RecipeDetailView(recipe: recipeCard!, showAddToPlanButton: false),
+      ),
+    );
   }
 
   /// Xoá món khỏi kế hoạch và shopping list

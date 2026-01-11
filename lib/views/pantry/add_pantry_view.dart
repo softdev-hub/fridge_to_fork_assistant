@@ -292,8 +292,6 @@ class _AddPantryViewState extends State<AddPantryView> {
                       const SizedBox(height: 32),
                       _buildDivider(isDark),
                       const SizedBox(height: 24),
-                      _buildScanButtons(isDark),
-                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -511,16 +509,6 @@ class _AddPantryViewState extends State<AddPantryView> {
         Expanded(
           child: Divider(color: isDark ? Colors.grey[600] : Colors.grey[300]),
         ),
-      ],
-    );
-  }
-
-  Widget _buildScanButtons(bool isDark) {
-    return Column(
-      children: [
-        _buildScanButton(Icons.qr_code_scanner, 'Quét mã vạch', isDark, () {}),
-        const SizedBox(height: 12),
-        _buildScanButton(Icons.receipt_long, 'Quét hóa đơn', isDark, () {}),
       ],
     );
   }
