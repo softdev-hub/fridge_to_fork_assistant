@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 const _supabaseUrlKey = 'SUPABASE_URL';
 const _supabaseAnonKey = 'SUPABASE_ANON_KEY';
+const _geminiApiKey = 'GEMINI_API_KEY';
+const _openRouterApiKey = 'OPENROUTER_API_KEY';
 
 /// Loads environment variables before accessing Supabase credentials.
 Future<void> ensureEnvLoaded() async {
@@ -16,6 +18,12 @@ String get supabaseUrl => dotenv.env[_supabaseUrlKey] ?? '';
 
 /// Returns the configured Supabase anon/public API key from `.env`.
 String get supabaseAnonKey => dotenv.env[_supabaseAnonKey] ?? '';
+
+/// Returns the configured Gemini API key from `.env`.
+String get geminiApiKey => dotenv.env[_geminiApiKey] ?? '';
+
+/// Returns the configured OpenRouter API key from `.env`.
+String get openRouterApiKey => dotenv.env[_openRouterApiKey] ?? '';
 
 /// Initializes the Supabase client using the values from `.env`.
 Future<void> initSupabase() async {

@@ -1,12 +1,3 @@
-# Flutter wrapper
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.**  { *; }
--keep class io.flutter.util.**  { *; }
--keep class io.flutter.view.**  { *; }
--keep class io.flutter.**  { *; }
--keep class io.flutter.plugins.**  { *; }
-
-# Google ML Kit - Text Recognition
 # Keep ML Kit classes
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.android.gms.** { *; }
@@ -18,20 +9,6 @@
 -keep class com.google.mlkit.vision.text.devanagari.** { *; }
 -keep class com.google.mlkit.vision.text.japanese.** { *; }
 -keep class com.google.mlkit.vision.text.korean.** { *; }
--keep class com.google.mlkit.vision.text.latin.** { *; }
-
-# Google ML Kit Commons
--keep class com.google.mlkit.common.** { *; }
--keep class com.google.mlkit.vision.common.** { *; }
-
-# Keep classes referenced by ML Kit
--dontwarn com.google.mlkit.vision.text.chinese.**
--dontwarn com.google.mlkit.vision.text.devanagari.**
--dontwarn com.google.mlkit.vision.text.japanese.**
--dontwarn com.google.mlkit.vision.text.korean.**
-
-# Preserve annotations
--keepattributes *Annotation*
 
 # Keep Flutter plugin classes
 -keep class io.flutter.** { *; }
@@ -40,3 +17,9 @@
 # Don't warn about missing classes
 -dontwarn com.google.mlkit.vision.text.**
 -dontwarn com.google.android.gms.**
+
+# Ignore missing Google Play Core classes (not needed for non-Play Store builds)
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
