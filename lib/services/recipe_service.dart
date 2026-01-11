@@ -1,8 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../controllers/recipe_detail_controller.dart';
 import '../controllers/recipe_suggestion_controller.dart';
 import '../controllers/recipe_suggestion_filters.dart';
 import '../models/enums.dart';
+import '../models/recipe.dart' as db_recipe;
 import '../models/recipe_ingredient.dart';
 import '../views/recipes/components/recipe_card_list.dart';
 
@@ -16,6 +18,70 @@ class RecipeService {
   static final RecipeService instance = RecipeService._();
 
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  /// Fetch 1 recipe theo `recipeId` và map sang `RecipeCardModel`.
+  ///
+  /// Dùng để mở chi tiết công thức từ các màn ngoài Recipes tab (vd: Thực đơn ngày)
+  /// mà vẫn dùng đúng UI `RecipeDetailView`.
+  Future<RecipeCardModel?> getRecipeCardById({required int recipeId}) async {
+    final detail = RecipeDetailController();
+    final db_recipe.Recipe? recipe = await detail.getRecipeDetail(recipeId);
+    if (recipe == null) return null;
+
+    RecipeDifficulty diff(RecipeDifficultyEnum? d) {
+      switch (d) {
+        case RecipeDifficultyEnum.medium:
+          return RecipeDifficulty.medium;
+        case RecipeDifficultyEnum.hard:
+          return RecipeDifficulty.hard;
+        case RecipeDifficultyEnum.easy:
+        case null:
+          return RecipeDifficulty.easy;
+      }
+    }
+
+    RecipeMealTime meal(MealTypeEnum? m) {
+      switch (m) {
+        case MealTypeEnum.lunch:
+          return RecipeMealTime.lunch;
+        case MealTypeEnum.dinner:
+          return RecipeMealTime.dinner;
+        case MealTypeEnum.breakfast:
+        case null:
+          return RecipeMealTime.breakfast;
+      }
+    }
+
+    String timeLabel(int? minutes) {
+      if (minutes == null || minutes <= 0) return 'Không rõ thời gian';
+      return '$minutes phút';
+    }
+
+    String ingredientName(RecipeIngredient ri) =>
+        ri.ingredient?.name ?? 'Nguyên liệu #${ri.ingredientId}';
+
+    final ingredients = recipe.ingredients ?? const <RecipeIngredient>[];
+    final ingredientNames = ingredients.map(ingredientName).toList();
+
+    return RecipeCardModel(
+      recipeId: recipe.recipeId,
+      name: recipe.title,
+      timeLabel: timeLabel(recipe.cookingTimeMinutes),
+      difficulty: diff(recipe.difficulty),
+      mealTime: meal(recipe.mealType),
+      matchType: MatchType.full,
+      availableIngredients: ingredientNames.length,
+      totalIngredients: ingredientNames.length,
+      missingCount: 0,
+      expiringCount: null,
+      isExpiring: false,
+      availableNames: ingredientNames,
+      missingNames: const [],
+      instructions: recipe.instructions,
+      videoUrl: recipe.videoUrl,
+      imageUrl: recipe.imageUrl,
+    );
+  }
 
   Future<Set<int>> _fetchExpiringIngredientIds({
     required String profileId,
@@ -70,7 +136,9 @@ class RecipeService {
       lenientMissing: true,
     );
 
-    return filtered.map((s) => _mapToCardModel(s, expiringIngredientIds)).toList();
+    return filtered
+        .map((s) => _mapToCardModel(s, expiringIngredientIds))
+        .toList();
   }
 
   RecipeCardModel _mapToCardModel(

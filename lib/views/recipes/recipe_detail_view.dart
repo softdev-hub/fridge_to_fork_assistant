@@ -7,12 +7,16 @@ import '../../models/recipe_ingredient.dart';
 import '../../models/ingredient.dart';
 import '../../models/enums.dart';
 import '../../services/shared_recipe_service.dart';
-import '../home_view.dart';
 
 class RecipeDetailView extends StatefulWidget {
   final RecipeCardModel recipe;
+  final bool showAddToPlanButton;
 
-  const RecipeDetailView({super.key, required this.recipe});
+  const RecipeDetailView({
+    super.key,
+    required this.recipe,
+    this.showAddToPlanButton = true,
+  });
 
   @override
   State<RecipeDetailView> createState() => _RecipeDetailViewState();
@@ -185,6 +189,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     final availableList = _availableIngredients();
     final missingList = _getMissingIngredientsDisplay();
     final instructionSteps = _instructionSteps();
+    final bottomPadding =
+        24 +
+        MediaQuery.of(context).padding.bottom +
+        (widget.showAddToPlanButton ? kBottomNavigationBarHeight : 0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -214,7 +222,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(bottom: bottomPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -330,47 +338,45 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               ),
 
               // Actions
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.event, color: Colors.white),
-                    label: const Text(
-                      'Thêm món vào Kế hoạch',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    onPressed: () {
-                      // Đặt recipe vào shared service
-                      SharedRecipeService().setSelectedRecipe(
-                        widget.recipe,
-                        fromTab: true,
-                      );
-
-                      // Navigate đến HomeView và chuyển sang tab PlanView (index 3)
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const HomeView(initialIndex: 3), // Go to Plan tab
+              if (widget.showAddToPlanButton)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.event, color: Colors.white),
+                      label: const Text(
+                        'Thêm món vào Kế hoạch',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
-                        (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4CAF50),
-                      minimumSize: const Size.fromHeight(48),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      onPressed: () {
+                        // Đặt recipe vào shared service
+                        SharedRecipeService().setSelectedRecipe(
+                          widget.recipe,
+                          fromTab: true,
+                        );
+
+                        // Yêu cầu HomeView chuyển sang tab Kế hoạch (index 3)
+                        // và đóng màn chi tiết để tránh bị "thừa" bottom nav.
+                        SharedRecipeService().requestOpenPlanRecipeSheet();
+                        SharedRecipeService().requestSwitchTab(3);
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        minimumSize: const Size.fromHeight(48),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

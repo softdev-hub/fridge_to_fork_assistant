@@ -5,10 +5,13 @@ import 'package:fridge_to_fork_assistant/views/auth/profile_view.dart';
 import 'package:fridge_to_fork_assistant/views/pantry/pantry_view.dart';
 import 'package:fridge_to_fork_assistant/views/recipes/recipe_view.dart';
 import 'package:fridge_to_fork_assistant/views/recipes/recipe_matching_view.dart';
+import 'package:fridge_to_fork_assistant/views/recipes/recipe_detail_view.dart';
 import 'package:fridge_to_fork_assistant/views/plans/plan_view.dart';
 import 'package:fridge_to_fork_assistant/views/notification/notification.dart';
 import 'package:fridge_to_fork_assistant/views/auth/login_view.dart';
 import 'package:fridge_to_fork_assistant/views/chat/chat_view.dart';
+import 'package:fridge_to_fork_assistant/services/recipe_service.dart';
+import 'package:fridge_to_fork_assistant/services/shared_recipe_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile.dart';
 import '../models/pantry_item.dart';
@@ -30,11 +33,49 @@ class _HomeViewState extends State<HomeView> {
   final authService = AuthService();
   late int _selectedIndex;
   final GlobalKey<PlanViewState> _planViewKey = GlobalKey<PlanViewState>();
+  final GlobalKey<NavigatorState> _recipesNavKey = GlobalKey<NavigatorState>();
+  final SharedRecipeService _sharedRecipe = SharedRecipeService();
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _sharedRecipe.addListener(_handlePendingRecipeDetailNavigation);
+  }
+
+  @override
+  void dispose() {
+    _sharedRecipe.removeListener(_handlePendingRecipeDetailNavigation);
+    super.dispose();
+  }
+
+  void _handlePendingRecipeDetailNavigation() {
+    final pendingTabIndex = _sharedRecipe.takePendingSwitchTabIndex();
+    if (pendingTabIndex != null && mounted) {
+      _switchTab(pendingTabIndex);
+    }
+
+    final recipeId = _sharedRecipe.takePendingOpenRecipeDetailId();
+    if (recipeId == null) return;
+
+    if (mounted) {
+      setState(() => _selectedIndex = 2);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final cached = _sharedRecipe.availableRecipes
+          .where((r) => r.recipeId == recipeId)
+          .toList();
+      final recipeCard = cached.isNotEmpty
+          ? cached.first
+          : await RecipeService.instance.getRecipeCardById(recipeId: recipeId);
+
+      if (recipeCard == null) return;
+
+      _recipesNavKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => RecipeDetailView(recipe: recipeCard)),
+      );
+    });
   }
 
   void logout() async {
@@ -42,6 +83,10 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _switchTab(int index) {
+    // Nếu đang rời tab Kế hoạch thì hạ bottom sheet trước.
+    if (_selectedIndex == 3 && index != 3) {
+      _planViewKey.currentState?.collapseRecipeBottomSheet();
+    }
     setState(() => _selectedIndex = index);
     if (index == 3) {
       _planViewKey.currentState?.forceRefresh();
@@ -53,7 +98,7 @@ class _HomeViewState extends State<HomeView> {
     final List<Widget> pages = [
       _HomeContent(onTabChange: _switchTab),
       const PantryView(),
-      const RecipeTabNavigator(),
+      RecipeTabNavigator(navigatorKey: _recipesNavKey),
       PlanView(key: _planViewKey),
       const RecipeMatchingView(),
     ];
@@ -64,16 +109,18 @@ class _HomeViewState extends State<HomeView> {
         currentIndex: _selectedIndex,
         onTap: _switchTab,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ChatView()),
-          );
-        },
-        backgroundColor: const Color(0xFF4CAF50),
-        child: const Icon(Icons.smart_toy, color: Colors.white),
-      ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatView()),
+                );
+              },
+              backgroundColor: const Color(0xFF4CAF50),
+              child: const Icon(Icons.smart_toy, color: Colors.white),
+            )
+          : null,
     );
   }
 }
@@ -1024,11 +1071,14 @@ class _HomeContentState extends State<_HomeContent> {
 /// Nested navigator for the “Công thức” tab so we can push recipe-related
 /// screens without losing the bottom navigation from HomeView.
 class RecipeTabNavigator extends StatelessWidget {
-  const RecipeTabNavigator({super.key});
+  final GlobalKey<NavigatorState>? navigatorKey;
+
+  const RecipeTabNavigator({super.key, this.navigatorKey});
 
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/matching':
